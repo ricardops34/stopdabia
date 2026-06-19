@@ -8,26 +8,22 @@ describe("Home", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: /bia stop/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /jogar sozinho/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /^jogar$/i }),
-    ).toHaveAttribute("href", "/host");
-    expect(
-      screen.getByRole("link", { name: /jogar com amigos/i }),
-    ).toHaveAttribute("href", "/join");
+
     expect(
       screen.getByRole("link", { name: /jogar sozinho/i }),
     ).toHaveAttribute("href", "/solo");
+
+    expect(
+      screen.getByRole("link", { name: /^jogar$/i }),
+    ).toHaveAttribute("href", "/host");
+
     expect(
       screen.getByRole("link", { name: /jogar com amigos/i }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("href", "/join");
+
     expect(
       screen.getByRole("img", { name: /arte principal do bia stop/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /arte principal do bia stop/i }))
-      .toHaveAttribute("src", expect.stringContaining("inicio.png"));
+    ).toHaveAttribute("src", expect.stringContaining("cachorra.png"));
   });
 
   it("exposes accessible navigation landmarks for quick entry", () => {
@@ -36,7 +32,9 @@ describe("Home", () => {
     expect(
       screen.getByRole("link", { name: /pular para os modos de jogo/i }),
     ).toBeInTheDocument();
+
     expect(screen.getByRole("banner")).toBeInTheDocument();
+
     expect(
       screen.getByRole("navigation", { name: /modos de jogo/i }),
     ).toBeInTheDocument();

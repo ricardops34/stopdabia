@@ -19,12 +19,54 @@ const TOTAL_TIME = 120;
 
 type Phase = "setup" | "countdown" | "playing" | "done";
 
+type CdImg = "contagem1" | "contagem2";
+
+function CountdownFrame({ img, frame }: { img: CdImg; frame: number }) {
+  const isGrid = img === "contagem1";
+
+  const imgStyle: React.CSSProperties = isGrid
+    ? {
+        position: "absolute", top: 0, left: 0,
+        width: "200%", height: "200%",
+        transform: [
+          "translate(0%,0%)",
+          "translate(-50%,0%)",
+          "translate(0%,-50%)",
+          "translate(-50%,-50%)",
+        ][frame],
+      }
+    : {
+        position: "absolute", top: 0, left: 0,
+        width: "100%", height: "400%",
+        transform: [
+          "translate(0%,0%)",
+          "translate(0%,-25%)",
+          "translate(0%,-50%)",
+          "translate(0%,-75%)",
+        ][frame],
+      };
+
+  return (
+    <div
+      key={frame}
+      className="relative overflow-hidden rounded-3xl shadow-2xl"
+      style={{ width: 300, height: 300, animation: "popIn .3s cubic-bezier(.22,1,.36,1) both" }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/aviso/${img}.png`} alt="" aria-hidden style={imgStyle} />
+    </div>
+  );
+}
+
 export default function SoloPage() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [letter, setLetter] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [cdNum, setCdNum] = useState(3);
+  const [cdImg] = useState<CdImg>(() =>
+    Math.random() < 0.5 ? "contagem1" : "contagem2"
+  );
 
   const startGame = useCallback(() => {
     const l = LETTERS[Math.floor(Math.random() * LETTERS.length)];
@@ -120,28 +162,17 @@ export default function SoloPage() {
 
   /* ── COUNTDOWN ──────────────────────────────────────────────────────── */
   if (phase === "countdown") {
-    const label = cdNum <= 0 ? "VAI!" : String(cdNum);
+    const frame = 3 - cdNum; // 0=3, 1=2, 2=1, 3=VAI!
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#140028]">
         <style>{`
           @keyframes popIn {
-            0%   { transform: scale(1.6); opacity: 0; }
-            60%  { transform: scale(.92); opacity: 1; }
+            0%   { transform: scale(1.15); opacity: 0; }
+            60%  { transform: scale(.97); opacity: 1; }
             100% { transform: scale(1);   opacity: 1; }
           }
         `}</style>
-        <div
-          key={label}
-          className="text-center"
-          style={{ animation: "popIn .35s cubic-bezier(.22,1,.36,1) both" }}
-        >
-          <span
-            className="text-[10rem] font-black leading-none text-white"
-            style={{ textShadow: "0 0 60px #9651ef, 0 0 120px #9651ef" }}
-          >
-            {label}
-          </span>
-        </div>
+        <CountdownFrame img={cdImg} frame={frame} />
       </main>
     );
   }
@@ -162,30 +193,58 @@ export default function SoloPage() {
           />
         </div>
 
-        {/* header row */}
-        <div className="flex items-center justify-between px-5 pt-4">
-          <span
-            className="text-2xl font-black tabular-nums transition-colors duration-500"
-            style={{ color: timerColor }}
-          >
-            {timeLeft}s
-          </span>
-
-          <div className="flex flex-col items-center">
-            <span className="text-[0.6rem] font-black uppercase tracking-[0.35em] text-white/30">
-              letra
-            </span>
+        {/* letra card + timer */}
+        <div className="flex items-center gap-3 px-4 pt-2">
+          {/* letra.png com a letra sobreposta no quadro */}
+          <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
+            <Image
+              src="/aviso/letra.png"
+              alt="Letra da rodada"
+              fill
+              sizes="140px"
+              className="object-contain"
+            />
+            {/* letra sobreposta no quadro branco da imagem */}
             <span
-              className="text-6xl font-black leading-none text-white"
-              style={{ textShadow: "0 0 30px #ef7ba3, 0 0 60px #9651ef" }}
+              className="absolute font-black text-[#3b1f6e] leading-none"
+              style={{
+                left: "65%",
+                top: "43%",
+                transform: "translate(-50%, -50%)",
+                fontSize: "3rem",
+              }}
             >
               {letter}
             </span>
           </div>
 
-          <span className="text-sm font-bold text-white/30">
-            {filled}/{CATEGORIES.length}
-          </span>
+          {/* timer + progresso */}
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-3xl font-black tabular-nums transition-colors duration-500"
+                style={{ color: timerColor }}
+              >
+                {timeLeft}s
+              </span>
+              <span className="text-sm font-bold text-white/40">
+                {filled}/{CATEGORIES.length}
+              </span>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full transition-all duration-1000 ease-linear"
+                style={{
+                  width: `${pct}%`,
+                  background: timerColor,
+                  boxShadow: `0 0 8px ${timerColor}`,
+                }}
+              />
+            </div>
+            <p className="text-[0.6rem] font-black uppercase tracking-[0.3em] text-white/30">
+              preencha com a letra {letter}
+            </p>
+          </div>
         </div>
 
         {/* categories */}
