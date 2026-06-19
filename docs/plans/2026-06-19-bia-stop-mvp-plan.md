@@ -10,6 +10,8 @@
 
 ---
 
+**Cross-cutting requirement:** todas as telas do MVP devem ser `mobile-first`, responsivas em desktop e com semântica mínima de acessibilidade validada por testes.
+
 ### Task 1: Scaffold do projeto
 
 **Files:**

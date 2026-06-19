@@ -12,6 +12,17 @@
 
 O produto precisa funcionar bem em telas pequenas, ter baixa fricção de entrada e transmitir uma identidade social e competitiva sem parecer infantil demais.
 
+## Accessibility And Responsiveness
+
+Esses requisitos são centrais no produto, não acabamento:
+
+- mobile-first em toda tela principal
+- layout funcional em celular e desktop sem perda de fluxo
+- alvos de toque grandes
+- contraste suficiente em textos e ações principais
+- navegação por teclado e landmarks semânticos
+- textos e estados claros para jogadores mais novos
+
 ## MVP Decisions
 
 - Entrada por `sala privada com código`
@@ -136,6 +147,7 @@ Arquitetura recomendada para o MVP:
 O MVP está correto quando:
 
 - jogadores conseguem criar e entrar em salas pelo celular e desktop
+- a interface se mantém legível e operável em celular e computador
 - a sala sincroniza rodadas corretamente
 - o host consegue escolher categorias da lista pronta
 - a rodada termina por tempo ou `STOP`

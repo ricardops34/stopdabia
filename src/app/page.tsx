@@ -1,65 +1,115 @@
 import Image from "next/image";
+import Link from "next/link";
+
+const BG_CHARS = [
+  { char: "A", x: "1%",  y: "4%",  size: "5.5rem", rot: "-18deg", op: 0.13 },
+  { char: "B", x: "6%",  y: "28%", size: "7rem",   rot: "22deg",  op: 0.10 },
+  { char: "C", x: "2%",  y: "55%", size: "4.5rem", rot: "-9deg",  op: 0.14 },
+  { char: "D", x: "9%",  y: "78%", size: "6.5rem", rot: "14deg",  op: 0.09 },
+  { char: "E", x: "14%", y: "12%", size: "4rem",   rot: "8deg",   op: 0.08 },
+  { char: "F", x: "18%", y: "88%", size: "5rem",   rot: "-25deg", op: 0.10 },
+  { char: "★", x: "4%",  y: "42%", size: "3rem",   rot: "10deg",  op: 0.15 },
+  { char: "♥", x: "12%", y: "62%", size: "2.5rem", rot: "-5deg",  op: 0.12 },
+  { char: "G", x: "78%", y: "5%",  size: "6rem",   rot: "20deg",  op: 0.10 },
+  { char: "H", x: "85%", y: "30%", size: "7.5rem", rot: "-15deg", op: 0.09 },
+  { char: "I", x: "90%", y: "58%", size: "4rem",   rot: "28deg",  op: 0.13 },
+  { char: "J", x: "80%", y: "80%", size: "5.5rem", rot: "-10deg", op: 0.10 },
+  { char: "K", x: "73%", y: "15%", size: "3.5rem", rot: "-22deg", op: 0.08 },
+  { char: "L", x: "88%", y: "72%", size: "4.5rem", rot: "12deg",  op: 0.11 },
+  { char: "★", x: "92%", y: "44%", size: "3rem",   rot: "-8deg",  op: 0.15 },
+  { char: "♥", x: "76%", y: "92%", size: "2.5rem", rot: "15deg",  op: 0.12 },
+  { char: "M", x: "48%", y: "2%",  size: "4rem",   rot: "-12deg", op: 0.07 },
+  { char: "N", x: "52%", y: "96%", size: "5rem",   rot: "18deg",  op: 0.08 },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#ef7ba3]">
+      {/* radial glow that frames the image */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 80% at 50% 50%, #f4a0c0 0%, #e85f99 55%, #c73d7e 100%)",
+        }}
+      />
+
+      {/* scattered alphabet – decorates the side areas on desktop */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 select-none overflow-hidden">
+        {BG_CHARS.map(({ char, x, y, size, rot, op }, i) => (
+          <span
+            key={i}
+            className="absolute font-black text-white"
+            style={{
+              left: x,
+              top: y,
+              fontSize: size,
+              transform: `rotate(${rot})`,
+              opacity: op,
+              lineHeight: 1,
+              fontFamily: "var(--font-geist-sans)",
+            }}
+          >
+            {char}
+          </span>
+        ))}
+      </div>
+
+      {/* skip link */}
+      <a
+        className="absolute left-3 top-3 z-30 -translate-y-24 rounded-full bg-slate-950 px-4 py-3 text-sm font-bold text-white transition focus:translate-y-0 focus:outline-none focus:ring-4 focus:ring-white/80"
+        href="#modos"
+      >
+        Pular para os modos de jogo
+      </a>
+
+      <header className="sr-only">
+        <h1>Bia STOP</h1>
+      </header>
+
+      {/* game image – square sized to fit the viewport */}
+      <section
+        aria-label="Tela inicial do Bia STOP"
+        className="relative z-10"
+        style={{ width: "min(100vw, 100svh)", height: "min(100vw, 100svh)" }}
+      >
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          alt="Arte principal do Bia STOP"
+          fill
           priority
+          sizes="min(100vw, 100svh)"
+          src="/inicio.png"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <nav
+          aria-label="Modos de jogo"
+          className="absolute inset-0"
+          id="modos"
+        >
+          <Link
+            href="/solo"
+            className="absolute rounded-full focus:outline-none focus:ring-4 focus:ring-cyan-200/80"
+            style={{ left: "4.2%", top: "89.2%", width: "28.6%", height: "6.7%" }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <span className="sr-only">Jogar sozinho</span>
+          </Link>
+          <Link
+            href="/host"
+            className="absolute rounded-full focus:outline-none focus:ring-4 focus:ring-yellow-200/80"
+            style={{ left: "35.2%", top: "89.2%", width: "29.4%", height: "6.7%" }}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <span className="sr-only">Jogar</span>
+          </Link>
+          <Link
+            href="/join"
+            className="absolute rounded-full focus:outline-none focus:ring-4 focus:ring-violet-200/80"
+            style={{ left: "67.2%", top: "89.2%", width: "28.8%", height: "6.7%" }}
+          >
+            <span className="sr-only">Jogar com amigos</span>
+          </Link>
+        </nav>
+      </section>
+    </main>
   );
 }
