@@ -497,22 +497,23 @@ function LobbyView({
         </div>
       </div>
 
-      {/* ── Botão Iniciar flutuante (host) ── */}
-      {isHost ? (
-        <BottomBar
-          right={
-            <BtnPrimary
-              onClick={onStart}
-              disabled={players.length < 2}
-              label="INICIAR"
-              icon="▶"
-              pulse
-            />
-          }
-        />
-      ) : (
-        <BottomBar />
-      )}
+      {/* ── Barra Flutuante ── */}
+      <BottomBar
+        center={
+          <>
+            <BtnSecondary onClick={() => window.location.href = '/'} label="SAIR" icon="🚪" />
+            {isHost && (
+              <BtnPrimary
+                onClick={onStart}
+                disabled={players.length < 2}
+                label="INICIAR"
+                icon="▶"
+                pulse
+              />
+            )}
+          </>
+        }
+      />
     </div>
   )
 }
