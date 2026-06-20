@@ -6,13 +6,17 @@ export type GamePhase =
   | 'review'
   | 'scoreboard'
   | 'finished'
+  | 'rematch'
 
 export interface Player {
   id: string
   nickname: string
+  avatar: string
   isHost: boolean
   totalScore: number
   roundScores: number[]
+  spectating?: boolean
+  rematchReady?: boolean
 }
 
 export interface Category {
@@ -27,6 +31,8 @@ export interface RoomSettings {
   categories: Category[]
 }
 
+export type AnswerOutcome = 'acerto' | 'matando_aula' | 'letra_errada' | 'palavra_nao_existe' | 'vazio'
+
 export interface PlayerAnswer {
   playerId: string
   nickname: string
@@ -34,6 +40,7 @@ export interface PlayerAnswer {
   valid: boolean | null
   points: number
   duplicate: boolean
+  outcome?: AnswerOutcome
 }
 
 export interface CategoryResult {

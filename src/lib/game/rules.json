@@ -1,0 +1,141 @@
+{
+  "outcomes": {
+    "acerto": {
+      "label": "Acerto!",
+      "description": "Palavra válida, começa com a letra correta e se encaixa perfeitamente na categoria",
+      "image": "/aviso/acerto.png",
+      "valid": true,
+      "points_unique": 15,
+      "points_duplicate": 10
+    },
+    "matando_aula": {
+      "label": "Matando Aula",
+      "description": "Começa com a letra correta MAS a palavra é inventada, não existe no dicionário, ou não se encaixa legitimamente na categoria. Ex: letra B, categoria Animal → 'Bicharedo' (não é animal real).",
+      "image": "/aviso/matando_aula.png",
+      "valid": false,
+      "points": 0
+    },
+    "letra_errada": {
+      "label": "Letra Errada",
+      "description": "A resposta não começa com a letra sorteada (ignorando acentos na primeira letra). Ex: letra B → resposta começa com C, D, etc.",
+      "image": "/aviso/da_zero.png",
+      "valid": false,
+      "points": 0
+    },
+    "palavra_nao_existe": {
+      "label": "Palavra Não Existe",
+      "description": "A palavra começa com a letra mas é claramente inventada, sem sentido, ou uma sequência aleatória de letras. Diferente de matando_aula: aqui nem parece uma tentativa séria.",
+      "image": "/aviso/palavra_nao_existe.png",
+      "valid": false,
+      "points": 0
+    },
+    "vazio": {
+      "label": "Sem Resposta",
+      "description": "O jogador não digitou nada ou deixou em branco",
+      "image": "/aviso/da_zero.png",
+      "valid": false,
+      "points": 0
+    }
+  },
+
+  "categories": {
+    "nome": {
+      "label": "Nome",
+      "description": "Nome próprio de pessoa — pode ser nome brasileiro, estrangeiro, fictício (personagem famoso) ou apelido consagrado. Sobrenome sozinho não vale.",
+      "examples_valid": ["Ana", "Bruno", "Cléo", "Dumbledore"],
+      "examples_invalid": ["Animal (é categoria diferente)", "Azul (cor, não nome)"],
+      "edge_cases": "Nomes compostos valem se o PRIMEIRO nome começa com a letra. Ex: letra A → 'Ana Paula' vale, 'Maria Antônia' não vale."
+    },
+    "animal": {
+      "label": "Animal",
+      "description": "Qualquer animal real — mamífero, pássaro, peixe, inseto, réptil, anfíbio, etc. Animais mitológicos não valem.",
+      "examples_valid": ["Baleia", "Cachorro", "Dromedário", "Elefante"],
+      "examples_invalid": ["Batman (personagem)", "Dragão (mitológico)"],
+      "edge_cases": "Nome popular aceito além do nome científico. Ex: 'Bicho-pau' vale para B."
+    },
+    "cor": {
+      "label": "Cor",
+      "description": "Cor reconhecida em português. Tons e variações valem (ex: 'azul-marinho', 'verde-limão'). A primeira palavra deve começar com a letra.",
+      "examples_valid": ["Azul", "Bege", "Carmesim", "Dourado"],
+      "examples_invalid": ["Bonito (adjetivo, não cor)"]
+    },
+    "fruta": {
+      "label": "Fruta",
+      "description": "Fruta reconhecida em português. Frutas exóticas e regionais brasileiras valem.",
+      "examples_valid": ["Abacaxi", "Banana", "Cupuaçu", "Damasco"],
+      "examples_invalid": ["Alface (verdura)", "Batata (tubérculo)"]
+    },
+    "objeto": {
+      "label": "Objeto",
+      "description": "Objeto concreto, coisa física que pode ser tocada. Não pode ser pessoa, lugar ou abstração.",
+      "examples_valid": ["Armário", "Borracha", "Cadeira", "Dado"],
+      "examples_invalid": ["Amor (abstrato)", "Brasil (lugar)"]
+    },
+    "profissao": {
+      "label": "Profissão",
+      "description": "Profissão, ocupação ou cargo reconhecido. Pode ser formal ou informal.",
+      "examples_valid": ["Advogado", "Bombeiro", "Carpinteiro", "Dentista"],
+      "examples_invalid": ["Dormindo (verbo)", "Alto (adjetivo)"]
+    },
+    "cidade": {
+      "label": "Cidade",
+      "description": "Nome de cidade real — brasileira ou do mundo. Bairros e distritos não valem.",
+      "examples_valid": ["Amsterdã", "Belém", "Curitiba", "Dubai"],
+      "examples_invalid": ["Copacabana (bairro)", "Paraná (estado)"]
+    },
+    "pais": {
+      "label": "País",
+      "description": "Nome de país reconhecido politicamente. Use o nome em português quando houver. Territórios e regiões não valem.",
+      "examples_valid": ["Alemanha", "Brasil", "Chile", "Dinamarca"],
+      "examples_invalid": ["Amazônia (região)", "Catalunha (região autônoma)"]
+    },
+    "comida": {
+      "label": "Comida",
+      "description": "Prato, alimento ou bebida que se come/bebe. Ingredientes isolados valem se forem reconhecíveis como comida.",
+      "examples_valid": ["Arroz", "Brigadeiro", "Coxinha", "Doce de leite"],
+      "examples_invalid": ["Colher (objeto para comer, não comida)"]
+    },
+    "verbo": {
+      "label": "Verbo",
+      "description": "Qualquer verbo da língua portuguesa no infinitivo (terminado em -ar, -er, -ir). Não aceite outras formas verbais.",
+      "examples_valid": ["Amar", "Brincar", "Correr", "Dormir"],
+      "examples_invalid": ["Amando (gerúndio)", "Amou (passado)", "Bonito (adjetivo)"]
+    },
+    "personagem": {
+      "label": "Personagem",
+      "description": "Personagem fictício famoso de filme, série, livro, HQ, anime, videogame ou folclore. Pessoas reais não valem.",
+      "examples_valid": ["Asterix", "Batman", "Cinderela", "Darth Vader"],
+      "examples_invalid": ["Angelina Jolie (pessoa real)", "Brasil (país)"]
+    },
+    "esporte": {
+      "label": "Esporte",
+      "description": "Modalidade esportiva reconhecida — olímpica ou não. Jogos e atividades físicas valem.",
+      "examples_valid": ["Atletismo", "Basquete", "Ciclismo", "Dardo"],
+      "examples_invalid": ["Bola (objeto do esporte)", "Correr (verbo)"]
+    },
+    "filme": {
+      "label": "Filme",
+      "description": "Título de filme lançado no cinema, pode ser nacional ou estrangeiro. Use o título em português quando famoso assim. Séries não valem aqui.",
+      "examples_valid": ["Avatar", "Bacurau", "Coringa", "Duna"],
+      "examples_invalid": ["Breaking Bad (série)", "Bonito (adjetivo)"]
+    },
+    "serie": {
+      "label": "Série",
+      "description": "Série de TV, streaming ou minissérie. Filmes não valem aqui.",
+      "examples_valid": ["Arcane", "Breaking Bad", "Chaves", "Dark"],
+      "examples_invalid": ["Avatar (filme)", "Bonito (adjetivo)"]
+    },
+    "marca": {
+      "label": "Marca",
+      "description": "Marca comercial conhecida — produto, empresa ou loja. A marca deve ser real e reconhecível.",
+      "examples_valid": ["Adidas", "Bradesco", "Coca-Cola", "Dell"],
+      "examples_invalid": ["Carro (categoria genérica)", "Bonito (adjetivo)"]
+    },
+    "musica": {
+      "label": "Música",
+      "description": "Título de música famosa — nacional ou internacional. Álbuns não valem, apenas músicas.",
+      "examples_valid": ["Aquarela", "Bohemian Rhapsody", "Claudinho e Buchecha (artista vale se começar com a letra)", "Despacito"],
+      "examples_invalid": ["Thriller (álbum do Michael Jackson — mas também é música, então vale)", "Bonito (se não for título real de música famosa)"]
+    }
+  }
+}

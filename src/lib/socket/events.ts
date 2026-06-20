@@ -2,17 +2,18 @@ import type { Room, Player, Round, CategoryResult } from '@/lib/game/types'
 
 // Client → Server
 export interface ClientToServerEvents {
-  'room:create': (nickname: string, cb: (res: { code: string; error?: string }) => void) => void
+  'room:create': (nickname: string, avatar: string, cb: (res: { code: string; error?: string }) => void) => void
   'room:join': (
     code: string,
     nickname: string,
-    cb: (res: { ok: boolean; error?: string }) => void,
+    avatar: string,
+    cb: (res: { ok: boolean; error?: string; spectating?: boolean }) => void,
   ) => void
   'room:start': (cb: (res: { ok: boolean; error?: string }) => void) => void
+  'room:sync': () => void
   'game:stop': () => void
   'game:answers': (answers: Record<string, string>) => void
-  'review:vote': (categoryId: string, playerId: string, valid: boolean) => void
-  'review:next': (cb: (res: { ok: boolean }) => void) => void
+  'rematch:ready': () => void
   'room:leave': () => void
 }
 
@@ -27,6 +28,7 @@ export interface ServerToClientEvents {
   'game:stopped': (byNickname: string) => void
   'review:results': (results: CategoryResult[]) => void
   'scoreboard:update': (players: Player[]) => void
+  'rematch:countdown': (seconds: number) => void
   'room:error': (message: string) => void
 }
 

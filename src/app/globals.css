@@ -17,11 +17,32 @@
   box-sizing: border-box;
 }
 
+/* Remove fundo branco do logo via blend mode — funciona em fundos coloridos */
+.logo-blend {
+  mix-blend-mode: multiply;
+  /* Fallback: se o arquivo ainda tiver fundo branco opaco em bg escuro,
+     usa screen + invert para tentar limpar */
+}
+
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
   background-color: var(--color-navy);
   color: white;
   font-family: var(--font-display);
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+#__next, main {
+  flex: 1;
 }
 
 @keyframes pulse-stop {

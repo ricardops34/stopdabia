@@ -14,6 +14,7 @@ import {
   MAX_NICKNAME_LENGTH,
 } from '@/lib/game/config'
 import { computeCategoryScores, computeRoundTotal } from '@/lib/game/scoring'
+import { saveGameResult } from '@/lib/redis/ranking'
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>
 
@@ -57,7 +58,7 @@ async function validateWithAI(
   letter: string,
   categoryLabel: string,
   answers: { playerId: string; nickname: string; answer: string }[],
-): Promise<{ playerId: string; valid: boolean }[]> {
+): Promise<{ playerId: string; valid: boolean; outcome: import('@/lib/game/types').AnswerOutcome }[]> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/validate`, {
       method: 'POST',
@@ -65,13 +66,21 @@ async function validateWithAI(
       body: JSON.stringify({ letter, category: categoryLabel, answers }),
     })
     if (!res.ok) throw new Error('AI request failed')
-    const data = await res.json() as { results: { playerId: string; valid: boolean }[] }
+    const data = await res.json() as { results: { playerId: string; valid: boolean; outcome: import('@/lib/game/types').AnswerOutcome }[] }
     return data.results
   } catch {
-    return answers.map((a) => ({
-      playerId: a.playerId,
-      valid: a.answer.trim().toLowerCase().startsWith(letter.toLowerCase()) && a.answer.trim().length > 1,
-    }))
+    return answers.map((a) => {
+      const trimmed = a.answer.trim()
+      const startsOk = trimmed.toLowerCase().startsWith(letter.toLowerCase())
+      const outcome: import('@/lib/game/types').AnswerOutcome = !trimmed
+        ? 'vazio'
+        : !startsOk
+          ? 'letra_errada'
+          : trimmed.length > 1
+            ? 'matando_aula'
+            : 'palavra_nao_existe'
+      return { playerId: a.playerId, valid: startsOk && trimmed.length > 1, outcome }
+    })
   }
 }
 
@@ -82,14 +91,14 @@ export function attachSocketServer(httpServer: HttpServer): IO {
   })
 
   io.on('connection', (socket) => {
-    socket.on('room:create', (nickname, cb) => {
+    socket.on('room:create', (nickname, avatar, cb) => {
       if (!nickname || nickname.length < MIN_NICKNAME_LENGTH || nickname.length > MAX_NICKNAME_LENGTH) {
         return cb({ code: '', error: 'Nickname inválido' })
       }
       if (isOffensive(nickname)) return cb({ code: '', error: 'Nickname inadequado' })
 
       const code = generateRoomCode()
-      const player: Player = { id: socket.id, nickname, isHost: true, totalScore: 0, roundScores: [] }
+      const player: Player = { id: socket.id, nickname, avatar: avatar || '/avatar/avatar_01.png', isHost: true, totalScore: 0, roundScores: [] }
       const room: Room = {
         code,
         phase: 'lobby',
@@ -113,10 +122,9 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       cb({ code })
     })
 
-    socket.on('room:join', (code, nickname, cb) => {
+    socket.on('room:join', (code, nickname, avatar, cb) => {
       const room = getRoom(code.toUpperCase())
       if (!room) return cb({ ok: false, error: 'Sala não encontrada' })
-      if (room.phase !== 'lobby') return cb({ ok: false, error: 'Partida em andamento' })
       if (room.players.length >= MAX_PLAYERS) return cb({ ok: false, error: 'Sala cheia' })
       if (!nickname || nickname.length < MIN_NICKNAME_LENGTH || nickname.length > MAX_NICKNAME_LENGTH) {
         return cb({ ok: false, error: 'Nickname inválido' })
@@ -126,7 +134,17 @@ export function attachSocketServer(httpServer: HttpServer): IO {
         return cb({ ok: false, error: 'Nickname já em uso' })
       }
 
-      const player: Player = { id: socket.id, nickname, isHost: false, totalScore: 0, roundScores: [] }
+      // Entra como espectador se partida em andamento — participará na próxima rodada
+      const spectating = room.phase !== 'lobby'
+      const player: Player = {
+        id: socket.id,
+        nickname,
+        avatar: avatar || '/avatar/avatar_01.png',
+        isHost: false,
+        totalScore: 0,
+        roundScores: [],
+        spectating,
+      }
       room.players.push(player)
       setRoom(room)
       socket.data.roomCode = room.code
@@ -134,14 +152,27 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       socket.data.nickname = nickname
       socket.join(room.code)
       broadcastRoom(io, room)
-      cb({ ok: true })
+
+      // Manda o estado atual do jogo para o recém-chegado
+      if (spectating) {
+        socket.emit('game:phase', room.phase)
+        if (room.currentRound) {
+          socket.emit('game:letter', room.currentRound.letter)
+          if (room.currentRound.results.length > 0) {
+            socket.emit('review:results', room.currentRound.results)
+          }
+        }
+        socket.emit('scoreboard:update', room.players)
+      }
+
+      cb({ ok: true, spectating })
     })
 
     socket.on('room:start', (cb) => {
       const room = getRoom(socket.data.roomCode)
       if (!room) return cb({ ok: false, error: 'Sala não encontrada' })
       if (room.hostId !== socket.id) return cb({ ok: false, error: 'Apenas o host pode iniciar' })
-      if (room.phase !== 'lobby' && room.phase !== 'review') return cb({ ok: false, error: 'Não é possível iniciar agora' })
+      if (!['lobby', 'review', 'finished'].includes(room.phase)) return cb({ ok: false, error: 'Não é possível iniciar agora' })
       if (room.players.length < 1) return cb({ ok: false, error: 'Aguardando jogadores' })
 
       startLetterReveal(io, room)
@@ -173,6 +204,38 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       setTimeout(() => endRound(io, room.code), 2000)
     })
 
+    socket.on('rematch:ready', () => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room || room.phase !== 'rematch') return
+
+      const player = room.players.find((p) => p.id === socket.id)
+      if (player) player.rematchReady = true
+      setRoom(room)
+      broadcastRoom(io, room)
+
+      const active = room.players.filter((p) => !p.spectating)
+      const allReady = active.length >= 2 && active.every((p) => p.rematchReady)
+      if (allReady) {
+        clearTimer(room.code)
+        resetAndStart(io, room)
+      }
+    })
+
+    // Página da sala pede estado atual ao montar (resolve race condition de navegação)
+    socket.on('room:sync', () => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room) return
+      socket.emit('room:state', room)
+      socket.emit('room:players', room.players)
+      socket.emit('game:phase', room.phase)
+      if (room.currentRound) {
+        socket.emit('game:letter', room.currentRound.letter)
+        if (room.currentRound.results.length > 0) {
+          socket.emit('review:results', room.currentRound.results)
+        }
+      }
+    })
+
     socket.on('room:leave', () => handleDisconnect(io, socket))
     socket.on('disconnect', () => handleDisconnect(io, socket))
   })
@@ -182,7 +245,60 @@ export function attachSocketServer(httpServer: HttpServer): IO {
 
 // ─── Game flow ────────────────────────────────────────────────────────────────
 
+function startRematch(io: IO, room: Room) {
+  room.phase = 'rematch'
+  for (const p of room.players) p.rematchReady = false
+  setRoom(room)
+  io.to(room.code).emit('game:phase', 'rematch')
+  io.to(room.code).emit('scoreboard:update', room.players)
+
+  // Contador de 20s — inicia se ≥2 jogadores prontos
+  let remaining = 20
+  const tick = () => {
+    io.to(room.code).emit('rematch:countdown', remaining)
+    if (remaining <= 0) {
+      const fresh = getRoom(room.code)
+      if (!fresh || fresh.phase !== 'rematch') return
+      const active = fresh.players.filter((p) => !p.spectating)
+      if (active.filter((p) => p.rematchReady).length >= 1) {
+        resetAndStart(io, fresh)
+      } else {
+        // Ninguém aceitou — fica na tela
+        io.to(fresh.code).emit('rematch:countdown', 0)
+      }
+      return
+    }
+    remaining--
+    timers.set(room.code, setTimeout(tick, 1000))
+  }
+  timers.set(room.code, setTimeout(tick, 1000))
+}
+
+function resetAndStart(io: IO, room: Room) {
+  clearTimer(room.code)
+  // Reseta pontuações para nova partida
+  for (const p of room.players) {
+    p.totalScore = 0
+    p.roundScores = []
+    p.rematchReady = false
+    p.spectating = false
+  }
+  room.rounds = []
+  room.currentRound = null
+  setRoom(room)
+  startLetterReveal(io, room)
+}
+
+function activateSpectators(room: Room) {
+  // Converte espectadores em jogadores ativos no início de cada rodada
+  for (const p of room.players) {
+    if (p.spectating) p.spectating = false
+  }
+}
+
 function startLetterReveal(io: IO, room: Room) {
+  activateSpectators(room)
+
   // Sorteio da letra ANTES do countdown
   const letter = drawLetter()
 
@@ -264,11 +380,12 @@ async function endRound(io: IO, code: string) {
     }))
 
     const validations = await validateWithAI(letter, cat.label, catAnswers)
-    const validMap = new Map(validations.map((v) => [v.playerId, v.valid]))
+    const validMap = new Map(validations.map((v) => [v.playerId, { valid: v.valid, outcome: v.outcome }]))
 
     const answerList = catAnswers.map((a) => ({
       ...a,
-      valid: validMap.get(a.playerId) ?? false,
+      valid: validMap.get(a.playerId)?.valid ?? false,
+      outcome: validMap.get(a.playerId)?.outcome ?? 'vazio' as import('@/lib/game/types').AnswerOutcome,
       points: 0,
       duplicate: false,
     }))
@@ -289,9 +406,47 @@ async function endRound(io: IO, code: string) {
   room.players.sort((a, b) => b.totalScore - a.totalScore)
   setRoom(room)
 
+  const isLastRound = room.rounds.length >= room.settings.maxRounds
+
   io.to(code).emit('review:results', results)
   io.to(code).emit('room:state', room)
   io.to(code).emit('scoreboard:update', room.players)
+
+  // Após última rodada: mostra ranking por 8s, depois vai para rematch
+  if (isLastRound) {
+    setTimeout(() => {
+      const fresh = getRoom(code)
+      if (!fresh) return
+      fresh.phase = 'finished'
+      setRoom(fresh)
+      io.to(code).emit('game:phase', 'finished')
+
+      // Após 8s no ranking, inicia votação de rematch
+      setTimeout(() => {
+        const r = getRoom(code)
+        if (r && r.phase === 'finished') startRematch(io, r)
+      }, 8000)
+    }, 1000)
+  }
+
+  // Persiste no Redis (fire-and-forget, não bloqueia o jogo se Redis estiver fora)
+  const roundNum = room.rounds.length
+  for (const player of room.players) {
+    const roundScore = player.roundScores[player.roundScores.length - 1] ?? 0
+    const correct = results.reduce((s, cat) => {
+      const a = cat.answers.find((a) => a.playerId === player.id)
+      return s + (a?.valid ? 1 : 0)
+    }, 0)
+    saveGameResult('multi', {
+      id: `${code}_r${roundNum}_${player.id}`,
+      nickname: player.nickname,
+      score: roundScore,
+      letter: room.currentRound?.letter ?? '',
+      categories: room.settings.categories.length,
+      answeredCorrect: correct,
+      createdAt: Date.now(),
+    }).catch(() => { /* Redis offline — silencioso */ })
+  }
 }
 
 function handleDisconnect(io: IO, socket: { id: string; data: SocketData; leave: (room: string) => void }) {
