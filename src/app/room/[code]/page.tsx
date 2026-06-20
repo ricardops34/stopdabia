@@ -289,7 +289,7 @@ export default function RoomPage({ params }: PageProps) {
       {phase === 'playing' && isSpectating && (
         <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
           <div className="rounded-full flex items-center justify-center" style={{ width: 90, height: 90, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={70} height={70} />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={70} height={70} />
           </div>
           <p className="text-xl font-bold" style={{ color: '#FFD93D' }}>Rodada em andamento</p>
           <p className="text-sm opacity-50 text-center">Você entrará na próxima rodada.<br />Acompanhe a conferência!</p>
@@ -558,7 +558,7 @@ function LetterRevealView({ letter }: { letter: string }) {
       >
         <Image
           key={letter}
-          src={`/letras/${letter}.png`}
+          src={`/letras_sorteio/${letter}.png`}
           alt={letter}
           width={220}
           height={220}
@@ -623,7 +623,7 @@ function PlayingView({
       {/* Header: letra + timer */}
       <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
         <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 52, height: 52, backgroundColor: '#FFD93D' }}>
-          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} priority />
+          <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} priority />
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="text-2xl font-bold tabular-nums" style={{ color: urgent ? '#FF6B6B' : '#FFD93D' }}>{timer}s</span>
@@ -730,7 +730,7 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
       <div className="shrink-0 px-4 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-3">
           <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
           </div>
           <h2 className="text-xl font-bold flex-1" style={{ color: '#FFD93D' }}>{cat.categoryLabel}</h2>
           <span className="text-sm opacity-40 tabular-nums">{idx + 1}/{total}</span>
@@ -864,7 +864,7 @@ function ReviewView({
       {/* Cabeçalho */}
       <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3">
         <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
+          <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
         </div>
         <h2 className="text-lg font-bold flex-1">Resumo da Rodada</h2>
       </div>

@@ -1,155 +1,259 @@
-# Bia STOP Design
+# Bia STOP — Design & Layout
 
-**Product:** `Bia STOP`
+**Produto:** Bia STOP  
+**Público:** crianças e adolescentes de 8 a 17 anos  
+**Plataforma:** navegador mobile e desktop  
+**Última revisão:** 2026-06-20
 
-**Audience:** crianças e adolescentes de `8 a 17 anos`
+---
 
-**Platform:** navegador em `celular` e `desktop`
+## Visão do produto
 
-## Product Vision
+Bia STOP é uma versão digital do jogo STOP clássico com dois modos: **trilha individual** (solo, sem sala) e **multiplayer em tempo real** (sala privada com código). O visual é crochê amigurumi 3D — colorido, fofo e cheio de personalidade.
 
-`Bia STOP` é um jogo multiplayer em tempo real inspirado no STOP clássico, com visual moderno, energético e animado. O foco do MVP é permitir que um grupo entre rapidamente em uma sala privada, configure a partida, jogue rodadas curtas e valide respostas em conjunto.
+O jogo funciona **sem login** (modo visitante), mas jogadores autenticados têm acesso a histórico de progresso na trilha e ao ranking geral.
 
-O produto precisa funcionar bem em telas pequenas, ter baixa fricção de entrada e transmitir uma identidade social e competitiva sem parecer infantil demais.
+---
 
-## Accessibility And Responsiveness
+## Autenticação
 
-Esses requisitos são centrais no produto, não acabamento:
+### Modos de acesso
 
-- mobile-first em toda tela principal
-- layout funcional em celular e desktop sem perda de fluxo
-- alvos de toque grandes
-- contraste suficiente em textos e ações principais
-- navegação por teclado e landmarks semânticos
-- textos e estados claros para jogadores mais novos
+| Modo | Acesso | Progresso da trilha | Ranking geral |
+|---|---|---|---|
+| **Visitante** | Sem cadastro | `localStorage` (só no dispositivo) | Não |
+| **Autenticado** | Login Google ou Apple | Salvo no banco de dados | Sim |
 
-## MVP Decisions
+### Login social
+- **Google** — OAuth 2.0 via Auth.js (NextAuth v5)
+- **Apple** — Sign in with Apple via Auth.js
+- Sem senha, sem formulário de cadastro
+- Ao fazer login pela primeira vez: escolhe nickname e avatar (salvos no banco)
+- Ao fazer login em dispositivo novo: progresso da trilha sincroniza automaticamente
 
-- Entrada por `sala privada com código`
-- Ritmo de jogo `híbrido`
-- Validação `mista`
-- Público `8 a 17 anos`
-- Rodada com `tempo máximo + botão STOP`
-- Categorias `clássicas + escolares`
-- Categorias escolhidas pelo `host` a partir de uma `lista pronta`
+### Fluxo de login
+```
+Home → botão "Entrar" (opcional)
+  → modal com "Continuar com Google" / "Continuar com Apple"
+  → callback OAuth
+  → se primeiro acesso: tela de escolha de nickname + avatar
+  → redireciona de volta para onde estava
+```
 
-## Core Experience
+O botão de login fica discreto na home — o jogo não bloqueia nem exige login para jogar.
 
-O fluxo principal do MVP é:
+### Persistência por modo
+- **Visitante:** `localStorage['stop_solo_progress']` + `localStorage['stop_player']`
+- **Autenticado:** banco de dados (tabelas `users`, `trail_progress`, `match_results`)
+- Ao fazer login estando com progresso local: oferecer migração do localStorage para o banco
 
-1. Jogador abre a home
-2. Cria sala ou entra com código
-3. Host escolhe categorias e parâmetros da partida
-4. Jogadores entram na sala
-5. Host inicia a partida
-6. Servidor sorteia letra e abre a rodada
-7. Jogadores preenchem respostas
-8. Rodada termina por tempo ou por `STOP`
-9. Sistema faz validação básica
-10. Grupo vota nos casos discutíveis
-11. Pontos são calculados
-12. Ranking é exibido
-13. Próxima rodada ou fim de jogo
+---
 
-## Room Rules
+## Identidade visual
 
-O criador da sala atua como `host` e controla:
+### Estilo gráfico
+Todas as imagens seguem o estilo **crochet amigurumi 3D**: objetos e personagens feitos de lã colorida, textura de pontos visível, aparência 3D macia, fundo transparente. Não há elementos flat ou minimalistas — tudo tem volume e cor.
 
-- início da partida
-- seleção de categorias da lista pronta
-- quantidade de rodadas
-- tempo por rodada
+### Paleta de cores (UI)
+| Papel | Cor | Hex |
+|---|---|---|
+| Fundo principal | Navy escuro | `#0a1628` |
+| Ação primária | Coral | `#FF6B6B` |
+| Destaque / borda | Amarelo | `#FFD93D` |
+| Confirmação | Verde | `#2ECC71` |
+| Seção Clássico | Coral | `#FF6B6B` |
+| Seção Escolar | Teal | `#4ECDC4` |
+| Seção Divertido | Roxo | `#9B59B6` |
 
-Para o MVP, a sala deve permitir algo entre `5` e `8` categorias por partida. A biblioteca inicial precisa incluir grupos como:
+### Tipografia
+- Fonte principal: sistema (sans-serif)
+- Labels de botões: 8px, UPPERCASE, weight 700–900
+- Títulos de tela: 20–24px, bold
 
-- clássicas
-- escolares
-- divertidas
+### Mascotes
+| Personagem | Descrição | Uso |
+|---|---|---|
+| **Cachorra** | Boston Terrier preto e branco em crochê, coleira vermelha | Mascote principal — aparece em transições, resultados, home |
+| **Menina** | Menina morena de headphone em crochê | Personagem dos avisos de correção |
 
-Exemplos de categorias para o MVP:
+---
 
-- nome
-- animal
-- cor
-- cidade
-- comida
-- objeto
-- profissão
-- país
-- verbo
-- personagem
+## Componentes de UI reutilizáveis
 
-## Match Flow
+### BottomBar (`src/components/BottomBar.tsx`)
+Barra fixa na base da tela, altura 76px, fundo `#0a1628` com borda superior sutil.  
+Slots: `left`, `center`, `right` + `MuteToggle` fixo no canto.
 
-A sala precisa compartilhar uma máquina de estados sincronizada:
+Botões: 56×56px, borderRadius 16.
+- **BtnPrimary** — fundo coral `#FF6B6B`, borda amarela 2.5px (ação principal)
+- **BtnSecondary** — fundo `rgba(255,255,255,0.08)`, borda sutil (ação secundária)
 
-- `lobby`
-- `countdown`
-- `playing`
-- `stopping`
-- `review`
-- `scoreboard`
-- `finished`
+Fundo da barra: `public/ui/barra_fundo.png` (textura crochê navy)
 
-Todas as mudanças de estado precisam ser definidas pelo servidor para impedir inconsistências entre clientes.
+### Ícones da BottomBar (`public/icons/`)
+Todos em crochê 3D, fundo transparente, ~120×120px originais usados em 56×56px no botão.
 
-## Validation Model
+| Ícone | Arquivo | Estado atual |
+|---|---|---|
+| STOP! | `btn_stop.png` | ✅ |
+| Dica disponível | `btn_dica.png` | ✅ |
+| Dica usada | `btn_dica_usada.png` | ✅ |
+| Voltar (←) | `btn_voltar.png` | ✅ |
+| Avançar (→) | `btn_avançar.png` | ✅ |
+| Categoria anterior (<<) | `btn_anterior.png` | ✅ |
+| Próxima categoria (>>) | `btn_proxima.png` | ✅ |
+| Início/Home | `btn_inicio.png` | ✅ |
+| Resumo | `btn_resumo.png` | ✅ |
+| Resultado/Troféu | `btn_resultado.png` | ✅ |
+| Jogar/Play | `btn_jogar.png` | ✅ |
+| Sair da sala | `btn_sair.png` | ✅ |
+| Reiniciar | `btn_reiniciar.png` | ✅ |
+| Som ativo | `btn_som_on.png` | ✅ |
+| Som mudo | `btn_som_off.png` | ✅ |
 
-A validação do MVP será `mista`:
+**Distinção de navegação:**
+- `btn_voltar` / `btn_avançar` (seta simples creme) = navegação entre telas
+- `btn_anterior` / `btn_proxima` (chevron duplo laranja) = paginação de categorias dentro da rodada
 
-- o sistema rejeita vazios e formatos claramente inválidos
-- o sistema pode marcar respostas duplicadas exatas quando necessário para pontuação
-- respostas duvidosas seguem para votação dos jogadores
+### Avisos de correção (`public/aviso/`)
+Imagens da Menina de headphone exibidas em hero (220×220px) durante a revisão.
 
-Esse modelo mantém o ritmo sem remover o aspecto social do STOP.
+| Arquivo | Quando |
+|---|---|
+| `acerto.png` | Resposta correta e única |
+| `matando_aula.png` | Resposta duplicada com outro jogador |
+| `palavra_nao_existe.png` | IA rejeitou a palavra |
+| `da_zero.png` | Sem resposta enviada |
+| `demora.png` | >10s sem digitar (durante a rodada) |
+| `erro.png` | Falha genérica de validação |
+| `erro_sistema.png` | Falha de API / sistema fora ⚠️ renomear |
+| `quase.png` | 2º lugar no resultado |
+| `perdeu.png` | Último lugar |
+| `vencedor.png` | 1º lugar |
+| `caixa.png` | Quadro vazio — mensagem genérica sobreposta |
+| `dica_extra.png` | Token de dica extra desbloqueado ⚠️ renomear |
 
-## Visual Direction
+### Cachorra — poses semânticas (`public/cachorra/`)
+| Arquivo | Pose | Uso |
+|---|---|---|
+| `1.png` | Patinhas pra cima, animada | STOP disparado (interlude) |
+| `2.png` | Em pé, feliz com coleira | Home (sorteio), resultado médio |
+| `3.png` | Brincando com bola | Fim da trilha, resultado médio-baixo |
+| `4.png` | Escavando terra | Home (sorteio), resultado < 40% |
+| `5.png` | Pulando com confetes | Resultado ≥ 70% (vitória!) |
 
-A identidade visual deve ser vibrante e atual, com sensação de game social. Direção recomendada:
+**Mapeamento resultado solo:** `pct ≥ 0.7` → `5.png` · `pct ≥ 0.4` → `3.png` · `pct < 0.4` → `4.png`
 
-- tipografia expressiva e legível
-- paleta com `coral`, `amarelo`, `azul piscina` e `verde lima`
-- fundos com gradientes e formas orgânicas
-- cards grandes e botões com alto contraste
-- elementos de interface com bastante presença em mobile
+---
 
-## Animation Direction
+## Telas e fluxos
 
-As animações devem valorizar os momentos de maior tensão:
+### Home (`/`)
+- Logo `public/logo.png` como hero
+- Cachorra aleatória sorteada entre 1–5
+- Três botões: **Jogar Sozinho** · **▶ JOGAR** (criar sala) · **Jogar com Amigos** (entrar com código)
 
-- entrada dramática da letra da rodada
-- pulso visual do botão `STOP`
-- cronômetro com urgência crescente
-- transição curta entre rodada, revisão e placar
-- feedback animado de pontuação e mudança de ranking
+### Trilha individual (`/solo`)
 
-## Technical Direction
+#### Tela: Trilha (trail)
+Layout zigzag com 26 nós (letras A–Z), agrupados em 3 seções:
+- **Clássico** (A–J) — fundo coral, ícone livro
+- **Escolar** (K–R) — fundo teal, ícone capelo
+- **Divertido** (S–Z) — fundo roxo, ícone estrela
 
-Arquitetura recomendada para o MVP:
+Cada nó é um círculo com a imagem `public/icons/letra_X.png` por cima de um node background:
+- `trail/node_glow.png` — nó atual (dourado com halo) ⏳ a criar
+- `trail/node_done.png` — jogado (verde com estrela) ⏳ a criar
+- `trail/node_locked.png` — bloqueado (cinza) ⏳ a criar
 
-- `Next.js` no frontend e backend app layer
-- `TypeScript`
-- comunicação em tempo real com `Socket.IO`
-- persistência em `PostgreSQL`
-- apelido temporário sem cadastro obrigatório
+Conectores entre nós: `trail/fio.png` (corda crochê vertical tileável) ⏳ a criar
 
-## Non-Goals For MVP
+Banners de seção: `trail/secao_classica.png`, `trail/secao_escolar.png`, `trail/secao_divertida.png` ⏳ a criar  
+→ Ícone à direita, texto da seção renderizado via CSS por cima (65% esquerda liso)
 
-- categorias livres criadas por texto
-- autenticação completa com conta e senha
-- matchmaking público
-- chat complexo
-- múltiplos modos de jogo paralelos
-- moderação avançada
+Progresso: `localStorage['stop_solo_progress']` guarda `{letra: {score, maxScore}}`
 
-## Success Criteria
+#### Telas: Config → Revelação → Countdown → Jogando → Revisão → Resultado
+- Revelação da letra: `public/letras_sorteio/X.png` (menina com quadro)
+- Countdown: `public/contagem/03.png` → `02.png` → `01.png` → `vai.png`
+- Easter eggs: sorteados aleatoriamente entre `public/easter/easter_egg_01–13.png` (~20% das rodadas)
 
-O MVP está correto quando:
+### Multiplayer (`/room/[code]`)
 
-- jogadores conseguem criar e entrar em salas pelo celular e desktop
-- a interface se mantém legível e operável em celular e computador
-- a sala sincroniza rodadas corretamente
-- o host consegue escolher categorias da lista pronta
-- a rodada termina por tempo ou `STOP`
-- respostas podem ser revisadas com votação simples
-- o ranking final é exibido de forma clara e animada
+#### Tela: Lobby
+- Código da sala em destaque
+- Lista de jogadores com avatar e nickname
+- Host seleciona categorias e tempo
+- Avatar: `public/avatar/avatar_01–15.png`
+
+#### Tela: Jogando (paginada)
+Uma categoria por vez, com navegação prev/next na BottomBar:
+- BottomBar: `btn_anterior` | `btn_dica` · `btn_stop` | `btn_proxima`
+- Indicadores de ponto (dots) de quantas categorias há
+- Campo grande de resposta com `autoFocus` ao trocar página
+- `btn_stop.png` + placa `stop_text.png` na tela de interlude
+
+#### Tela: Revisão (paginada por categoria)
+- Uma categoria por vez com prev/next
+- Aviso em hero 220×220px (`public/aviso/`)
+- BottomBar: `btn_anterior` | `btn_proxima` (ou `btn_resumo` na última)
+
+#### Tela: Resumo multiplayer
+- Linha por jogador com avatar + pontos
+- Aviso pequeno (48×48px) por resposta
+- Cachorra: `1.png` (stopping) ou `5.png` (vencedor)
+
+---
+
+## Sistema de Dica (IA)
+
+- Disponível 1× por rodada (solo e multiplayer)
+- Alvo: categoria **atualmente visível** na página (não a primeira com campo vazio)
+- Backend: `POST /api/hint` → Groq `llama-3.1-8b-instant` → retorna 1 palavra
+- Estado: `hintUsed` (bool) + `hintLoading` (bool), reset a cada nova rodada
+- Visual: `btn_dica.png` (disponível) → `btn_dica_usada.png` (esgotado)
+- Futuro: sistema de tokens — jogadores acumulam dicas extras em partidas, aviso `dica_extra.png`
+
+---
+
+## Assets pendentes de criação
+
+| Pasta | Arquivos | Status |
+|---|---|---|
+| `public/trail/` | `fio.png`, `node_done.png`, `node_locked.png`, `node_glow.png` | ⏳ prompts prontos |
+| `public/trail/` | `secao_classica.png`, `secao_escolar.png`, `secao_divertida.png` | ⏳ prompts prontos |
+
+Prompts disponíveis em `docs/prompts-faltantes.md`.
+
+---
+
+## Acessibilidade e responsividade
+
+- Layout `height: 100dvh` + `overflow: hidden` — sem scroll da página, só scroll interno
+- `pb-24` em containers scrolláveis para não cobrir a BottomBar (76px)
+- Alvos de toque mínimo 56×56px (botões da barra)
+- Contraste de texto sobre fundo navy
+- `key={cat.id}` nos inputs aciona `autoFocus` ao trocar de categoria
+
+---
+
+## Ranking geral
+
+Disponível apenas para jogadores autenticados. Exibe:
+- Posição do jogador entre todos os usuários
+- Pontuação total acumulada na trilha
+- Avatar e nickname
+- Zona de promoção/rebaixamento (inspirado no Duolingo — ref: `imagens de referencia/29_ranking-demotion-zone.png`)
+
+Atualizado após cada rodada da trilha concluída.
+
+---
+
+## Non-goals (MVP)
+
+- Autenticação com e-mail e senha (apenas social login)
+- Categorias livres criadas pelo usuário
+- Matchmaking público
+- Chat em sala
+- Múltiplos idiomas
+- Moderação avançada de conteúdo

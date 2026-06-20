@@ -61,8 +61,8 @@ const TRAIL_SECTIONS = [
   },
 ] as const
 
-// zigzag: left → center-left → center-right → right → (repete)
-const ZIGZAG_JUSTIFY = ['flex-start', 'center', 'flex-end', 'center'] as const
+// offset em px a partir do centro para o zigzag (range compacto)
+const ZIGZAG_OFFSETS = [-56, -16, 16, 56] as const
 
 function loadProgress(): SoloProgress {
   if (typeof window === 'undefined') return {}
@@ -87,81 +87,110 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
 
   useEffect(() => { setProgress(loadProgress()) }, [])
 
+  const allLetters = TRAIL_SECTIONS.flatMap(s => [...s.letters])
+  const currentLetter = allLetters.find(l => !progress[l]) ?? null
+
   let globalIdx = 0
 
   return (
-    <main className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
-      {/* Header */}
-      <div className="shrink-0 flex items-center justify-center px-4 pt-4 pb-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="STOP ADEDONHA" width={140} style={{ height: 'auto', display: 'block' }} />
-      </div>
+    <main className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#0a1628' }}>
+      {/* Coluna central: max 440px para mobile-first mesmo em desktop */}
+      <div className="flex-1 flex flex-col overflow-hidden w-full mx-auto" style={{ maxWidth: 440 }}>
 
-      {/* Trilha scrollável */}
-      <div className="flex-1 overflow-y-auto pb-24" style={{ scrollbarWidth: 'none' }}>
-        {TRAIL_SECTIONS.map((section) => (
-          <div key={section.id}>
-            {/* Banner da seção */}
-            <div
-              className="mx-4 my-4 rounded-2xl px-4 py-3 flex items-center gap-3"
-              style={{ backgroundColor: section.color }}
-            >
-              <div className="flex-1">
-                <p className="text-xs font-black opacity-80 tracking-widest">{section.title}</p>
-                <p className="text-sm font-bold text-white">{section.subtitle}</p>
+        {/* Header */}
+        <div className="shrink-0 flex items-center justify-center px-4 pt-4 pb-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="STOP ADEDONHA" width={140} style={{ height: 'auto', display: 'block' }} />
+        </div>
+
+        {/* Trilha scrollável */}
+        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', paddingBottom: 96 }}>
+          {TRAIL_SECTIONS.map((section) => (
+            <div key={section.id}>
+
+              {/* Banner da seção */}
+              <div className="mx-3 mt-4 mb-2 relative overflow-hidden rounded-2xl" style={{ height: 68 }}>
+                <Image
+                  src={`/trail/secao_${section.id}.png`}
+                  alt={section.title}
+                  fill
+                  style={{ objectFit: 'cover', objectPosition: 'right center' }}
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: `linear-gradient(90deg, ${section.color}ff 40%, ${section.color}cc 60%, transparent 85%)` }}
+                />
+                <div className="absolute inset-0 flex flex-col justify-center px-4">
+                  <p className="text-xs font-black tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.9)' }}>{section.title}</p>
+                  <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>{section.subtitle}</p>
+                </div>
               </div>
-              <span style={{ fontSize: 28 }}>📋</span>
-            </div>
 
-            {/* Nós da trilha */}
-            <div className="flex flex-col gap-3 px-6 py-2">
-              {section.letters.map((l) => {
-                const ji = globalIdx % 4
-                globalIdx++
-                const done = !!progress[l]
-                const justify = ZIGZAG_JUSTIFY[ji]
+              {/* Nós em zigzag */}
+              <div className="flex flex-col items-center" style={{ paddingTop: 8, paddingBottom: 4 }}>
+                {section.letters.map((l, li) => {
+                  const offset = ZIGZAG_OFFSETS[globalIdx % 4]
+                  globalIdx++
+                  const done = !!progress[l]
+                  const isCurrent = l === currentLetter
+                  const isLastInSection = li === section.letters.length - 1
 
-                return (
-                  <div key={l} className="flex" style={{ justifyContent: justify }}>
-                    <button
-                      onClick={() => setPicking({ letter: l, cats: [...section.categoryIds] })}
-                      className="relative flex flex-col items-center justify-center active:scale-90 transition-transform"
-                      style={{
-                        width: 72, height: 72,
-                        borderRadius: 36,
-                        backgroundColor: done ? section.color : '#0F3460',
-                        border: `3px solid ${done ? section.dark : 'rgba(255,255,255,0.12)'}`,
-                        boxShadow: done ? `0 4px 16px ${section.color}55` : undefined,
-                      }}
-                    >
-                      <Image
-                        src={`/letras/letra_${l.toLowerCase()}.png`}
-                        alt={l}
-                        width={48}
-                        height={48}
-                        style={{ objectFit: 'contain' }}
-                      />
-                      {done && (
-                        <div
-                          className="absolute -bottom-1 -right-1 rounded-full flex items-center justify-center"
-                          style={{ width: 22, height: 22, backgroundColor: '#FFD93D', fontSize: 11, fontWeight: 900 }}
-                        >
-                          {progress[l].score}
+                  let nodeImg = '/trail/node_locked.png'
+                  if (done) nodeImg = '/trail/node_done.png'
+                  else if (isCurrent) nodeImg = '/trail/node_glow.png'
+
+                  return (
+                    <div key={l} className="flex flex-col items-center" style={{ transform: `translateX(${offset}px)` }}>
+                      {/* Nó */}
+                      <button
+                        onClick={() => setPicking({ letter: l, cats: [...section.categoryIds] })}
+                        className="relative flex items-center justify-center active:scale-90 transition-transform"
+                        style={{ width: 72, height: 72 }}
+                      >
+                        <Image src={nodeImg} alt="" fill style={{ objectFit: 'contain' }} />
+                        <Image
+                          src={`/icons/letra_${l.toLowerCase()}.png`}
+                          alt={l}
+                          width={40}
+                          height={40}
+                          style={{
+                            objectFit: 'contain',
+                            position: 'relative',
+                            zIndex: 1,
+                            filter: (!done && !isCurrent) ? 'grayscale(1) opacity(0.45)' : undefined,
+                          }}
+                        />
+                        {done && (
+                          <div
+                            className="absolute -bottom-1 -right-1 rounded-full flex items-center justify-center"
+                            style={{ width: 20, height: 20, backgroundColor: '#FFD93D', fontSize: 10, fontWeight: 900, zIndex: 2 }}
+                          >
+                            {progress[l].score}
+                          </div>
+                        )}
+                      </button>
+
+                      {/* Fio: container com tamanho fixo + fill para não explodir */}
+                      {!isLastInSection && (
+                        <div style={{ width: 16, height: 18, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                          <Image src="/trail/fio.png" alt="" fill style={{ objectFit: 'cover' }} />
                         </div>
                       )}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+                    </div>
+                  )
+                })}
+              </div>
 
-        {/* Cachorra no fim da trilha */}
-        <div className="flex justify-center py-6">
-          <Image src="/cachorra/3.png" alt="" width={120} height={120} style={{ objectFit: 'contain' }} />
-        </div>
-      </div>
+            </div>
+          ))}
+
+          {/* Cachorra no fim da trilha */}
+          <div className="flex justify-center py-6">
+            <Image src="/cachorra/3.png" alt="" width={120} height={120} style={{ objectFit: 'contain' }} />
+          </div>
+
+        </div>{/* fim scroll */}
+      </div>{/* fim max-width */}
 
       {/* Modal de seleção de tempo */}
       {picking && (
@@ -176,7 +205,7 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-center gap-3 mb-1">
-              <Image src={`/letras/letra_${picking.letter.toLowerCase()}.png`} alt={picking.letter} width={48} height={48} />
+              <Image src={`/icons/letra_${picking.letter.toLowerCase()}.png`} alt={picking.letter} width={48} height={48} />
               <p className="text-xl font-black text-white">Letra {picking.letter}</p>
             </div>
             <p className="text-sm opacity-60 text-center">Escolha o tempo por rodada</p>
@@ -232,7 +261,7 @@ function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext }: Rev
       <div className="shrink-0 px-4 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-3">
           <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
           </div>
           <h2 className="text-xl font-bold flex-1" style={{ color: '#FFD93D' }}>{r.categoryLabel}</h2>
           <span className="text-sm opacity-40 tabular-nums">{idx + 1}/{total}</span>
@@ -629,7 +658,7 @@ export default function SoloPage() {
           className="rounded-full flex items-center justify-center animate-letter-enter"
           style={{ width: 280, height: 280, backgroundColor: '#FFD93D', boxShadow: '0 0 60px rgba(255,217,61,0.5)' }}
         >
-          <Image src={`/letras/${letter}.png`} alt={letter} width={220} height={220} priority />
+          <Image src={`/letras_sorteio/${letter}.png`} alt={letter} width={220} height={220} priority />
         </div>
       </div>
     )
@@ -656,7 +685,7 @@ export default function SoloPage() {
         {/* Header: letra + timer */}
         <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
           <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 52, height: 52, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} priority />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} priority />
           </div>
           <div className="flex flex-col items-end gap-1">
             <span className="text-2xl font-bold tabular-nums" style={{ color: urgent ? '#FF6B6B' : '#FFD93D' }}>{timer}s</span>
@@ -752,7 +781,7 @@ export default function SoloPage() {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
           <div className="rounded-full flex items-center justify-center" style={{ width: 90, height: 90, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={70} height={70} />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={70} height={70} />
           </div>
           <p className="text-lg font-bold opacity-70">STOP!</p>
           <p className="text-sm opacity-50 animate-pulse">Validando com IA…</p>
@@ -786,7 +815,7 @@ export default function SoloPage() {
       <div className="flex flex-col min-h-screen px-4 py-6 gap-3 max-w-md mx-auto w-full">
         <div className="flex items-center gap-3 mb-2">
           <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 44, height: 44, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={34} height={34} />
+            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={34} height={34} />
           </div>
           <h2 className="text-xl font-bold">Resumo</h2>
         </div>

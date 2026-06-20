@@ -1,314 +1,314 @@
-# Bia STOP Implementation Plan
+# Bia STOP — MVP Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
-
-**Goal:** Construir o MVP web em tempo real do `Bia STOP` para celular e desktop.
-
-**Architecture:** Aplicação `Next.js` com frontend React, rotas e server runtime no mesmo projeto, sincronização em tempo real via `Socket.IO` e persistência relacional simples para salas, rodadas, respostas e pontuação.
-
-**Tech Stack:** `Next.js`, `React`, `TypeScript`, `Tailwind CSS`, `Socket.IO`, `PostgreSQL`, `Vitest`, `Testing Library`
+**Última revisão:** 2026-06-20  
+**Stack:** Next.js 16 · TypeScript · Tailwind CSS · Socket.IO 4 · Groq SDK
 
 ---
 
-**Cross-cutting requirement:** todas as telas do MVP devem ser `mobile-first`, responsivas em desktop e com semântica mínima de acessibilidade validada por testes.
-
-### Task 1: Scaffold do projeto
-
-**Files:**
-- Create: `app/*`
-- Create: `components/*`
-- Create: `lib/*`
-- Create: `public/*`
-- Create: `tests/*`
-- Create: `package.json`
-
-**Step 1: Gerar a base do projeto**
-
-Run: `npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm`
-
-Expected: projeto Next.js criado sem erro.
-
-**Step 2: Validar instalação**
-
-Run: `npm install`
-
-Expected: dependências resolvidas com sucesso.
-
-**Step 3: Verificar build base**
-
-Run: `npm run build`
-
-Expected: build inicial concluído com exit code `0`.
-
-### Task 2: Fundamentos visuais da marca
-
-**Files:**
-- Modify: `src/app/globals.css`
-- Modify: `src/app/page.tsx`
-- Create: `src/components/brand/*`
-
-**Step 1: Escrever teste da home**
-
-Criar teste cobrindo:
-- render do nome `Bia STOP`
-- CTA de criar sala
-- CTA de entrar na sala
-
-**Step 2: Rodar teste e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por componentes ainda não existentes ou texto divergente.
-
-**Step 3: Implementar home**
-
-Implementar landing com:
-- hero
-- cards de acesso
-- visual responsivo
-- identidade visual da marca
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 3: Modelo de domínio do jogo
-
-**Files:**
-- Create: `src/lib/game/types.ts`
-- Create: `src/lib/game/config.ts`
-- Create: `src/lib/game/scoring.ts`
-- Create: `src/tests/game/*`
-
-**Step 1: Escrever testes de regras**
-
-Cobrir:
-- estados válidos da partida
-- limites de categorias por sala
-- regras de pontuação
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por módulos ausentes.
-
-**Step 3: Implementar domínio mínimo**
-
-Criar:
-- tipos centrais
-- presets de categoria
-- helpers de pontuação
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 4: Lobby da sala
-
-**Files:**
-- Create: `src/app/room/[code]/page.tsx`
-- Create: `src/components/room/*`
-- Create: `src/lib/room/*`
-- Create: `src/tests/room/*`
-
-**Step 1: Escrever testes do lobby**
-
-Cobrir:
-- exibição do código da sala
-- lista de jogadores
-- seleção de categorias pelo host
-- botão de iniciar
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por rota e componentes ausentes.
-
-**Step 3: Implementar lobby inicial**
-
-Entregar:
-- layout mobile-first
-- categorias vindas da lista pronta
-- controles do host
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 5: Sincronização em tempo real
-
-**Files:**
-- Create: `src/lib/socket/*`
-- Create: `src/app/api/socket/*`
-- Modify: `src/app/room/[code]/page.tsx`
-- Create: `src/tests/socket/*`
-
-**Step 1: Escrever testes de eventos**
-
-Cobrir:
-- entrada na sala
-- atualização de jogadores
-- início da partida
-- mudança de fase
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por infraestrutura de socket ausente.
-
-**Step 3: Implementar camada de eventos**
-
-Entregar:
-- servidor Socket.IO
-- cliente socket
-- eventos tipados
-- sincronização inicial do lobby
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 6: Tela de rodada
-
-**Files:**
-- Create: `src/components/game/*`
-- Create: `src/app/game/[code]/page.tsx`
-- Create: `src/tests/gameplay/*`
-
-**Step 1: Escrever testes da rodada**
-
-Cobrir:
-- letra exibida
-- cronômetro
-- formulário de categorias
-- botão `STOP`
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por tela ainda não implementada.
-
-**Step 3: Implementar rodada**
-
-Entregar:
-- grid responsiva
-- campo por categoria
-- interações visuais do cronômetro
-- ação `STOP`
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 7: Revisão e placar
-
-**Files:**
-- Create: `src/components/review/*`
-- Create: `src/components/scoreboard/*`
-- Create: `src/tests/review/*`
-
-**Step 1: Escrever testes de revisão**
-
-Cobrir:
-- respostas inválidas automáticas
-- votação simples
-- cálculo de pontos
-- ranking final
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por fluxo ausente.
-
-**Step 3: Implementar revisão e placar**
-
-Entregar:
-- tela de revisão
-- ação de aprovar ou rejeitar
-- resumo de pontos por rodada
-- placar final animado
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 8: Persistência inicial
-
-**Files:**
-- Create: `src/lib/db/*`
-- Create: `prisma/*` or `drizzle/*`
-- Create: `src/tests/db/*`
-
-**Step 1: Escrever testes do modelo**
-
-Cobrir:
-- criação de sala
-- gravação de jogadores
-- registro de rodada
-
-**Step 2: Rodar testes e confirmar falha**
-
-Run: `npm test`
-
-Expected: falha por camada de persistência ausente.
-
-**Step 3: Implementar persistência mínima**
-
-Entregar:
-- schema inicial
-- acesso ao banco
-- repositórios mínimos
-
-**Step 4: Rodar testes**
-
-Run: `npm test`
-
-Expected: testes passando.
-
-### Task 9: Verificação final do MVP base
-
-**Files:**
-- Modify: `README.md`
-
-**Step 1: Rodar suíte local**
-
-Run: `npm test`
-
-Expected: todos os testes passando.
-
-**Step 2: Rodar build**
-
-Run: `npm run build`
-
-Expected: build concluído com exit code `0`.
-
-**Step 3: Rodar lint**
-
-Run: `npm run lint`
-
-Expected: zero erros.
-
-**Step 4: Documentar setup**
-
-Adicionar no `README.md`:
-- como instalar
-- como rodar em desenvolvimento
-- stack escolhida
-- roadmap do MVP
+## Estado atual do MVP
+
+| Área | Status |
+|---|---|
+| Home (`/`) | ✅ implementado |
+| Modo solo — config/letra/countdown/jogando/revisão/resultado | ✅ implementado |
+| Modo solo — trilha individual (TrailScreen) | ✅ implementado (aguarda assets `trail/`) |
+| Multiplayer — lobby/countdown/jogando/revisão/resumo | ✅ implementado |
+| BottomBar com BtnPrimary/BtnSecondary/MuteToggle | ✅ implementado |
+| Sistema de Dica (IA via Groq) | ✅ implementado (`/api/hint`) |
+| Paginação de categorias (jogando + revisão) | ✅ implementado |
+| Aviso hero 220×220px na revisão | ✅ implementado |
+| Assets de ícones da barra | ✅ todos criados |
+| Assets da trilha (`public/trail/`) | ✅ todos criados (8 arquivos, inclui `fio_bg.png`) |
+| **Autenticação Google + Apple** | ⏳ não implementado |
+| **Banco de dados (progresso + ranking)** | ⏳ não implementado |
+| Ranking/leaderboard (tela dedicada) | ⏳ não implementado |
+| Sistema de tokens de dica | ⏳ não implementado |
+
+---
+
+## Arquitetura de arquivos
+
+```
+src/
+  app/
+    page.tsx                  ← home: logo, cachorra aleatória, 3 botões
+    solo/page.tsx             ← modo solo completo (máquina de estados)
+    room/[code]/page.tsx      ← multiplayer completo (máquina de estados)
+    api/
+      hint/route.ts           ← POST {letter, categoryLabel} → {word}
+      validate/route.ts       ← validação de palavras
+      socket/route.ts         ← Socket.IO server
+  components/
+    BottomBar.tsx             ← barra fixa + BtnPrimary + BtnSecondary
+  lib/
+    audio/manager.ts          ← getMuted / setMuted
+public/
+  icons/                      ← 15 ícones crochê + 26 letra_X.png
+  letras_sorteio/             ← A–Z revelação (menina com quadro)
+  cachorra/                   ← 5 poses da mascote
+  aviso/                      ← 12 avisos da menina de headphone
+  contagem/                   ← 01, 02, 03, vai
+  easter/                     ← 13 easter eggs
+  avatar/                     ← 15 avatares
+  trail/                      ← ⏳ 7 assets pendentes de criação
+  ui/
+    barra_fundo.png           ← fundo da BottomBar
+```
+
+---
+
+## Máquina de estados — Solo (`src/app/solo/page.tsx`)
+
+```
+trail → config → letter → countdown → playing → review → result
+```
+
+| Estado | Tela | Assets chave |
+|---|---|---|
+| `trail` | Trilha zigzag A–Z | `icons/letra_X.png` + `trail/node_*.png` (⏳) |
+| `config` | Escolha de tempo e categorias | — |
+| `letter` | Revelação da letra (5s auto) | `letras_sorteio/X.png` |
+| `countdown` | 3-2-1-VAI (easter egg ~20%) | `contagem/0X.png` + `easter/easter_egg_XX.png` |
+| `playing` | Uma categoria por página + dica | `icons/letra_X.png`, `btn_dica.png`, `btn_stop.png` |
+| `review` | Aviso hero por categoria (prev/next) | `aviso/*.png` (220×220px) |
+| `result` | Pontuação + cachorra por performance | `cachorra/5.png` ≥70% · `3.png` ≥40% · `4.png` <40% |
+
+**Persistência solo:** `localStorage['stop_solo_progress']` → `{letra: {score, maxScore}}`  
+**Nickname/avatar:** `localStorage['stop_player']` → `{nickname, avatarId}`
+
+---
+
+## Máquina de estados — Multiplayer (`src/app/room/[code]/page.tsx`)
+
+```
+lobby → countdown → playing → stopping → review → scoreboard → finished
+```
+
+| Estado | Tela | Assets chave |
+|---|---|---|
+| `lobby` | Lista de jogadores + config do host | `avatar/avatar_XX.png` |
+| `countdown` | 3-2-1-VAI | `contagem/0X.png` |
+| `playing` | Uma categoria por página + dica | `btn_dica.png`, `btn_stop.png`, `icons/letra_X.png` |
+| `stopping` | Cachorra animada + `stop_text.png` | `cachorra/1.png`, `icons/stop_text.png` |
+| `review` | Aviso hero por categoria (prev/next) | `aviso/*.png` (220×220px) |
+| `scoreboard` | Resumo por jogador com avisos | `aviso/*.png` (48×48px) |
+| `finished` | Ranking final | `aviso/vencedor.png`, `aviso/quase.png`, `aviso/perdeu.png` |
+
+**Reconexão:** `sessionStorage['stop_session']` → `{code, playerId}`  
+**Socket.IO:** eventos tipados em `src/lib/socket/`
+
+---
+
+## Paginação de categorias (playing + review)
+
+Tanto o modo solo quanto o multiplayer usam o mesmo padrão:
+
+```tsx
+const [catIdx, setCatIdx] = useState(0)
+const cat = selectedCats[catIdx]
+// BottomBar: btn_anterior | btn_dica · btn_stop | btn_proxima
+// Dots indicadores abaixo do campo
+// key={cat.id} no input → autoFocus ao trocar página
+```
+
+A **Dica** sempre aponta para `selectedCats[catIdx]` (categoria visível no momento).
+
+---
+
+## Sistema de Dica — `src/app/api/hint/route.ts`
+
+```
+POST /api/hint
+Body: { letter: string, categoryLabel: string }
+Response: { word: string }
+```
+
+- Groq `llama-3.1-8b-instant`, max_tokens 20, temperature 0.7
+- Prompt: responda APENAS com UMA palavra que começa com a letra e pertence à categoria
+- 1 uso por rodada; estado `hintUsed` e `hintLoading` resetam ao entrar em `playing`
+- Visual: `btn_dica.png` → `btn_dica_usada.png` após uso
+
+---
+
+## Trilha individual — layout e dados
+
+### Seções e letras
+
+| Seção | Letras | Cor | Banner |
+|---|---|---|---|
+| Clássico | A–J (10 letras) | Coral `#FF6B6B` | `trail/secao_classica.png` ⏳ |
+| Escolar | K–R (8 letras) | Teal `#4ECDC4` | `trail/secao_escolar.png` ⏳ |
+| Divertido | S–Z (8 letras) | Roxo `#9B59B6` | `trail/secao_divertida.png` ⏳ |
+
+### Layout zigzag
+Posições dos nós (4-cycle): `['flex-start', 'center', 'flex-end', 'center']`
+
+### Estados dos nós
+```tsx
+// completed: score salvo no localStorage
+<Image src="/trail/node_done.png" />   // ⏳ asset
+<Image src="/icons/letra_X.png" />     // letra por cima
+
+// current (próxima letra disponível)
+<Image src="/trail/node_glow.png" />   // ⏳ asset
+<Image src="/icons/letra_X.png" />
+
+// locked
+<Image src="/trail/node_locked.png" /> // ⏳ asset
+<Image src="/icons/letra_X.png" style={{filter:'grayscale(1) opacity(0.4)'}} />
+
+// conector entre nós
+<Image src="/trail/fio.png" />         // ⏳ asset
+```
+
+---
+
+## Banco de dados
+
+### Schema principal (PostgreSQL via Prisma)
+
+```prisma
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  provider    String   // "google" | "apple"
+  nickname    String
+  avatarId    Int      // 1–15
+  createdAt   DateTime @default(now())
+
+  trailProgress TrailProgress[]
+  matchResults  MatchResult[]
+}
+
+model TrailProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  letter    String   // "A"–"Z"
+  score     Int
+  maxScore  Int
+  playedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model MatchResult {
+  id        String   @id @default(cuid())
+  userId    String
+  roomCode  String
+  score     Int
+  position  Int      // posição no ranking da sala
+  playedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+```
+
+### Ranking geral
+Calculado com `SUM(score)` da tabela `TrailProgress` por usuário.  
+Query: `SELECT userId, SUM(score) as total FROM TrailProgress GROUP BY userId ORDER BY total DESC`
+
+---
+
+## Autenticação
+
+### Biblioteca
+**Auth.js v5** (NextAuth) — suporte nativo a App Router do Next.js 16.
+
+```ts
+// src/auth.ts
+import NextAuth from 'next-auth'
+import Google from 'next-auth/providers/google'
+import Apple from 'next-auth/providers/apple'
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [Google, Apple],
+  callbacks: {
+    async signIn({ user, account }) {
+      // upsert User no banco
+    },
+    async session({ session, token }) {
+      // adicionar userId, nickname, avatarId à session
+    },
+  },
+})
+```
+
+### Rotas
+```
+src/auth.ts                    ← configuração central
+src/app/api/auth/[...nextauth]/route.ts  ← handler
+src/app/onboarding/page.tsx    ← nickname + avatar (primeiro acesso)
+src/app/ranking/page.tsx       ← leaderboard geral (requer login)
+src/app/perfil/page.tsx        ← histórico pessoal (requer login)
+```
+
+### Fluxo de primeiro acesso
+```
+OAuth callback
+  → verificar se User existe no banco
+  → não existe: redirect /onboarding (escolher nickname + avatar)
+  → existe: redirect para onde estava
+```
+
+### Sincronização localStorage → banco
+Ao fazer login com progresso local existente:
+```ts
+const local = JSON.parse(localStorage.getItem('stop_solo_progress') ?? '{}')
+if (Object.keys(local).length > 0) {
+  // mostrar modal: "Você tem X letras salvas localmente. Sincronizar?"
+  // POST /api/trail/sync com os dados
+  // limpar localStorage após sync
+}
+```
+
+---
+
+## Modo visitante vs autenticado
+
+| Ação | Visitante | Autenticado |
+|---|---|---|
+| Jogar trilha | ✅ | ✅ |
+| Jogar multiplayer | ✅ | ✅ |
+| Progresso da trilha | `localStorage` | Banco de dados |
+| Ver ranking geral | ❌ | ✅ |
+| Histórico de partidas | ❌ | ✅ |
+| Tokens de dica | ❌ | ✅ (futuro) |
+| Progresso entre dispositivos | ❌ | ✅ |
+
+---
+
+## Próximos passos
+
+### Alta prioridade
+1. ~~**Criar assets `public/trail/`**~~ ✅ concluído — integrar no TrailScreen
+2. **Autenticação** — instalar Auth.js, configurar Google + Apple, criar tabela `users`
+3. **Banco de dados** — Supabase (schema em `docs/supabase-schema.sql`)
+
+### Média prioridade
+4. **Tela de ranking** — leaderboard geral, só para autenticados (`/ranking`)
+5. **Tela de onboarding** — nickname + avatar no primeiro login (`/onboarding`)
+6. **Sync localStorage → banco** — modal ao fazer login com progresso local
+7. **Substituir emojis da BottomBar pelos ícones PNG** — `MuteToggle`, `BtnPrimary`, `BtnSecondary`
+8. **Renomear assets com espaço** — `aviso/dica extra.png` → `dica_extra.png`, `aviso/erro sistema.png` → `erro_sistema.png`
+
+### Baixa prioridade
+9. **Sistema de tokens de dica** — acumular após partidas, gastar para dicas extras, `aviso/dica_extra.png`
+10. Easter eggs na trilha individual
+11. Animações de transição entre estados
+
+---
+
+## Variáveis de ambiente
+
+```env
+# IA
+GROQ_API_KEY=...
+
+# Auth.js
+AUTH_SECRET=...
+AUTH_GOOGLE_ID=...
+AUTH_GOOGLE_SECRET=...
+AUTH_APPLE_ID=...
+AUTH_APPLE_SECRET=...
+
+# Banco de dados
+DATABASE_URL=postgresql://...
+```
