@@ -3,6 +3,8 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { setMuted, getMuted } from '@/lib/audio/manager'
 
+// ─── Mute ────────────────────────────────────────────────────────────────────
+
 function MuteToggle() {
   const [muted, setMutedState] = useState(false)
   useEffect(() => {
@@ -20,14 +22,21 @@ function MuteToggle() {
     <button
       onClick={toggle}
       aria-label={muted ? 'Ativar som' : 'Silenciar'}
-      className="flex flex-col items-center justify-center gap-1 rounded-xl font-extrabold text-white active:scale-95 transition-transform"
-      style={{ width: 56, height: 56, backgroundColor: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)' }}
+      className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-transform"
+      style={{
+        width: 56, height: 56, borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        border: '1.5px solid rgba(255,255,255,0.12)',
+        flexShrink: 0,
+      }}
     >
-      <span style={{ fontSize: 22, lineHeight: 1 }}>{muted ? '🔇' : '🔊'}</span>
-      <span style={{ fontSize: 9, lineHeight: 1.1, textAlign: 'center' }}>SOM</span>
+      <span style={{ fontSize: 24, lineHeight: 1 }}>{muted ? '🔇' : '🔊'}</span>
+      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 0.5 }}>SOM</span>
     </button>
   )
 }
+
+// ─── Bar ─────────────────────────────────────────────────────────────────────
 
 interface BottomBarProps {
   left?: ReactNode
@@ -38,45 +47,76 @@ interface BottomBarProps {
 export default function BottomBar({ left, center, right }: BottomBarProps) {
   return (
     <footer
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center px-3 gap-2 w-full"
-      style={{ height: 72, backgroundColor: '#0a1628', borderTop: '1.5px solid rgba(255,255,255,0.07)' }}
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-evenly px-3"
+      style={{ height: 76, backgroundColor: '#0a1628', borderTop: '1.5px solid rgba(255,255,255,0.07)' }}
     >
       {left}
-      {center}
+      {center && (
+        <div className="flex items-center gap-3">{center}</div>
+      )}
       {right}
       <MuteToggle />
     </footer>
   )
 }
 
-export function BtnSecondary({ onClick, label, icon = '←' }: {
-  onClick: () => void; label?: string; icon?: string
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl font-extrabold text-white active:scale-95 transition-transform"
-      style={{ height: 56, backgroundColor: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)', minWidth: 56 }}
-    >
-      <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
-      {label && <span style={{ fontSize: 9, lineHeight: 1.1, textAlign: 'center' }}>{label}</span>}
-    </button>
-  )
-}
+// ─── Botão secundário (ação de retorno / secundária) ─────────────────────────
 
-// Botão primário (ação principal)
-export function BtnPrimary({ onClick, label, icon, color = '#FF6B6B', disabled, pulse }: {
-  onClick: () => void; label: string; icon?: string; color?: string; disabled?: boolean; pulse?: boolean
+export function BtnSecondary({ onClick, label, icon = '←', color = 'rgba(255,255,255,0.08)', disabled }: {
+  onClick: () => void
+  label?: string
+  icon?: string
+  color?: string
+  disabled?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex-1 flex flex-col items-center justify-center gap-1 rounded-xl font-black text-white active:scale-95 transition-transform disabled:opacity-40 disabled:animate-none${pulse ? ' animate-pulse-stop' : ''}`}
-      style={{ height: 56, backgroundColor: color, border: '2px solid #FFD93D', textTransform: 'uppercase', minWidth: 56 }}
+      className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-transform disabled:opacity-20"
+      style={{
+        width: 56, height: 56, borderRadius: 16,
+        backgroundColor: color,
+        border: '1.5px solid rgba(255,255,255,0.15)',
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
+      {label && (
+        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
+          {label}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ─── Botão primário (ação principal) ─────────────────────────────────────────
+
+export function BtnPrimary({ onClick, label, icon, color = '#FF6B6B', disabled, pulse }: {
+  onClick: () => void
+  label: string
+  icon?: string
+  color?: string
+  disabled?: boolean
+  pulse?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex flex-col items-center justify-center gap-1 active:scale-90 transition-transform disabled:opacity-40${pulse ? ' animate-pulse-stop' : ''}`}
+      style={{
+        width: 56, height: 56, borderRadius: 16,
+        backgroundColor: color,
+        border: '2.5px solid #FFD93D',
+        flexShrink: 0,
+      }}
     >
       {icon && <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>}
-      <span style={{ fontSize: 9, lineHeight: 1.1, textAlign: 'center' }}>{label}</span>
+      <span style={{ fontSize: 8, color: 'white', fontWeight: 900, letterSpacing: 0.5, textAlign: 'center', textTransform: 'uppercase' }}>
+        {label}
+      </span>
     </button>
   )
 }

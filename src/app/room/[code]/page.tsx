@@ -33,6 +33,8 @@ export default function RoomPage({ params }: PageProps) {
   const [rematchCountdown, setRematchCountdown] = useState(20)
   const [rematchReady, setRematchReady] = useState(false)
   const [myId, setMyId] = useState('')
+  const [hintUsed, setHintUsed] = useState(false)
+  const [hintLoading, setHintLoading] = useState(false)
 
   const answersRef = useRef<Record<string, string>>({})
   const sentAnswers = useRef(false)
@@ -171,6 +173,8 @@ export default function RoomPage({ params }: PageProps) {
       sentAnswers.current = false
       answersRef.current = {}
       setAnswers({})
+      setHintUsed(false)
+      setHintLoading(false)
     } else if (phase === 'stopping' && !sentAnswers.current) {
       sentAnswers.current = true
       const socket = connectSocket()
@@ -263,6 +267,22 @@ export default function RoomPage({ params }: PageProps) {
           onChange={updateAnswer}
           onStop={handleStop}
           showDemora={showDemora}
+          hintUsed={hintUsed}
+          hintLoading={hintLoading}
+          onHint={async (catId: string, catLabel: string) => {
+            if (hintUsed || hintLoading) return
+            setHintLoading(true)
+            try {
+              const res = await fetch('/api/hint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ letter, categoryLabel: catLabel }),
+              })
+              const { word } = await res.json() as { word: string }
+              if (word) { updateAnswer(catId, word); setHintUsed(true) }
+            } catch { /* silently fail */ }
+            setHintLoading(false)
+          }}
         />
       )}
 
@@ -578,7 +598,7 @@ function CountdownView({ count }: { count: number }) {
 // ─── Playing ─────────────────────────────────────────────────────────────────
 
 function PlayingView({
-  letter, timer, categories, answers, onChange, onStop, showDemora,
+  letter, timer, categories, answers, onChange, onStop, showDemora, hintUsed, hintLoading, onHint,
 }: {
   letter: string
   timer: number
@@ -587,81 +607,96 @@ function PlayingView({
   onChange: (id: string, value: string) => void
   onStop: () => void
   showDemora: boolean
+  hintUsed: boolean
+  hintLoading: boolean
+  onHint: (catId: string, catLabel: string) => void
 }) {
+  const [catIdx, setCatIdx] = useState(0)
   const urgent = timer <= 10
+  const cat = categories[catIdx]
+  const total = categories.length
+  const isFirst = catIdx === 0
+  const isLast = catIdx === total - 1
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
-      {/* Header com letra e timer */}
-      <div
-        className="flex items-center justify-between px-4 py-3 sticky top-0 z-10"
-        style={{ backgroundColor: '#1A1A2E' }}
-      >
-        {/* Letra no canto */}
-        <div
-          className="rounded-full flex items-center justify-center shrink-0"
-          style={{ width: 56, height: 56, backgroundColor: '#FFD93D' }}
-        >
-          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={44} height={44} priority />
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
+      {/* Header: letra + timer */}
+      <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 52, height: 52, backgroundColor: '#FFD93D' }}>
+          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} priority />
         </div>
-
         <div className="flex flex-col items-end gap-1">
-          <span
-            className="text-2xl font-bold tabular-nums"
-            style={{ color: urgent ? '#FF6B6B' : '#FFD93D' }}
-          >
-            {timer}s
-          </span>
-          <div className="w-32 h-2 rounded-full" style={{ backgroundColor: '#0F3460' }}>
-            <div
-              className="h-2 rounded-full transition-all duration-1000"
-              style={{
-                width: `${Math.max(0, Math.min(100, (timer / 90) * 100))}%`,
-                backgroundColor: urgent ? '#FF6B6B' : '#4ECDC4',
-              }}
-            />
+          <span className="text-2xl font-bold tabular-nums" style={{ color: urgent ? '#FF6B6B' : '#FFD93D' }}>{timer}s</span>
+          <div className="w-28 h-2 rounded-full" style={{ backgroundColor: '#0F3460' }}>
+            <div className="h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${Math.max(0, Math.min(100, (timer / 90) * 100))}%`, backgroundColor: urgent ? '#FF6B6B' : '#4ECDC4' }} />
           </div>
         </div>
       </div>
 
-      {/* Banner "demora.png" quando jogador não respondeu nada em 10s */}
-      {showDemora && (
-        <div className="flex items-center justify-center py-2 animate-fade-in">
-          <Image src="/aviso/demora.png" alt="Está demorando!" width={260} height={130} />
+      {/* Conteúdo central */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+        {/* Pontos de progresso — clicáveis */}
+        <div className="flex gap-2 items-center">
+          {categories.map((c, i) => {
+            const filled = !!answers[c.id]?.trim()
+            return (
+              <button key={c.id} onClick={() => setCatIdx(i)}>
+                <div style={{
+                  width: i === catIdx ? 10 : 8,
+                  height: i === catIdx ? 10 : 8,
+                  borderRadius: '50%',
+                  backgroundColor: i === catIdx ? '#FFD93D' : filled ? '#4ECDC4' : '#0F3460',
+                  transition: 'all 0.2s',
+                }} />
+              </button>
+            )
+          })}
         </div>
-      )}
 
-      {/* Campos de resposta */}
-      <div className="flex-1 overflow-y-auto px-4 pt-2 pb-32 flex flex-col gap-3">
-        {categories.map((cat) => (
-          <div key={cat.id} className="flex flex-col gap-1">
-            <label className="text-xs font-semibold uppercase tracking-wider opacity-60">
-              {cat.label}
-            </label>
-            <input
-              type="text"
-              value={answers[cat.id] ?? ''}
-              onChange={(e) => onChange(cat.id, e.target.value)}
-              maxLength={80}
-              placeholder={`${cat.label} com ${letter}…`}
-              className="w-full px-4 py-3 rounded-xl text-white placeholder-white/30 outline-none"
-              style={{ backgroundColor: '#0F3460', border: '2px solid #16213E' }}
-              onFocus={(e) => (e.target.style.borderColor = '#4ECDC4')}
-              onBlur={(e) => (e.target.style.borderColor = '#16213E')}
-            />
-          </div>
-        ))}
-      </div>
+        {/* Nome da categoria */}
+        <div className="text-center">
+          <p className="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">{catIdx + 1} / {total}</p>
+          <h2 className="text-4xl font-black" style={{ color: '#FFD93D' }}>{cat?.label}</h2>
+        </div>
 
-      {/* Botão STOP flutuante */}
-      <BottomBar
-        center={
-          <BtnPrimary
-            onClick={onStop}
-            label="STOP!"
-            pulse
+        {/* Input grande */}
+        {cat && (
+          <input
+            key={cat.id}
+            type="text"
+            value={answers[cat.id] ?? ''}
+            onChange={(e) => onChange(cat.id, e.target.value)}
+            maxLength={80}
+            placeholder={`Com ${letter}…`}
+            autoFocus
+            className="w-full text-center text-2xl font-bold text-white placeholder-white/25 outline-none rounded-2xl px-4 py-5 transition-all"
+            style={{ backgroundColor: '#0F3460', border: `2px solid ${answers[cat.id]?.trim() ? '#4ECDC4' : '#16213E'}` }}
+            onFocus={(e) => (e.target.style.borderColor = '#4ECDC4')}
+            onBlur={(e) => (e.target.style.borderColor = answers[cat.id]?.trim() ? '#4ECDC4' : '#16213E')}
           />
+        )}
+
+        {showDemora && (
+          <Image src="/aviso/demora.png" alt="Está demorando!" width={200} height={100} className="animate-fade-in" />
+        )}
+      </div>
+
+      <BottomBar
+        left={<BtnSecondary onClick={() => setCatIdx((i) => i - 1)} icon="←" label="ANTERIOR" disabled={isFirst} />}
+        center={
+          <>
+            <BtnSecondary
+              onClick={() => cat && onHint(cat.id, cat.label)}
+              icon={hintLoading ? '⏳' : hintUsed ? '✅' : '💡'}
+              label={hintUsed ? 'USADA' : 'DICA'}
+              color={hintUsed ? 'rgba(255,255,255,0.05)' : 'rgba(255,217,61,0.15)'}
+              disabled={hintUsed || hintLoading}
+            />
+            <BtnPrimary onClick={onStop} label="STOP!" pulse />
+          </>
         }
+        right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} icon="→" label="PRÓXIMA" disabled={isLast} />}
       />
     </div>
   )
@@ -669,75 +704,52 @@ function PlayingView({
 
 // ─── Review ──────────────────────────────────────────────────────────────────
 
-const REVIEW_SECS = 5
-
 interface ReviewCategoryCardProps {
   cat: CategoryResult
   idx: number
   total: number
   letter: string
-  isLast: boolean
   myId: string
   getAviso: (a: PlayerAnswer, letter: string, idx: number) => string
+  onPrev: (() => void) | null
   onNext: () => void
 }
 
-function ReviewCategoryCard({ cat, idx, total, letter, isLast, myId, getAviso, onNext }: ReviewCategoryCardProps) {
-  const [elapsed, setElapsed] = useState(0)
-  const onNextRef = useRef(onNext)
-  onNextRef.current = onNext
-
-  useEffect(() => {
-    setElapsed(0)
-    const interval = setInterval(() => {
-      setElapsed((e) => e + 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [cat.categoryId])
-
-  useEffect(() => {
-    if (elapsed >= REVIEW_SECS) {
-      onNextRef.current()
-    }
-  }, [elapsed])
-
-  // Coloca a resposta do jogador atual primeiro
+function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext }: ReviewCategoryCardProps) {
   const sortedAnswers = [...cat.answers].sort((a, b) => {
     if (a.playerId === myId) return -1
     if (b.playerId === myId) return 1
     return 0
   })
 
+  const isLast = idx === total - 1
+
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
       {/* Topo */}
       <div className="shrink-0 px-4 pt-5 pb-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-              <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
-            </div>
-            <span className="text-sm opacity-50">{idx + 1} / {total}</span>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
+            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
           </div>
-          <span className="text-sm font-bold tabular-nums" style={{ color: '#4ECDC4' }}>
-            {REVIEW_SECS - elapsed}s
-          </span>
+          <h2 className="text-xl font-bold flex-1" style={{ color: '#FFD93D' }}>{cat.categoryLabel}</h2>
+          <span className="text-sm opacity-40 tabular-nums">{idx + 1}/{total}</span>
         </div>
-        <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: '#0F3460' }}>
-          <div
-            className="h-1.5 rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min((elapsed / REVIEW_SECS) * 100, 100)}%`, backgroundColor: isLast ? '#FF6B6B' : '#4ECDC4' }}
-          />
+
+        {/* Barra de progresso estática */}
+        <div className="w-full h-1.5 rounded-full flex gap-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 h-1.5 rounded-full"
+              style={{ backgroundColor: i <= idx ? (isLast ? '#FF6B6B' : '#4ECDC4') : '#0F3460' }}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Categoria */}
-      <h2 className="text-2xl font-bold text-center px-4 pb-3 shrink-0" style={{ color: '#FFD93D' }}>
-        {cat.categoryLabel}
-      </h2>
-
       {/* Respostas com scroll */}
-      <div className="flex-1 overflow-y-auto px-4 pb-20 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex-1 overflow-y-auto px-4 pb-24 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
         {sortedAnswers.map((a, ai) => {
           const isMe = a.playerId === myId
           return (
@@ -765,9 +777,18 @@ function ReviewCategoryCard({ cat, idx, total, letter, isLast, myId, getAviso, o
         })}
       </div>
 
-      <button onClick={onNext} className="fixed bottom-8 left-0 right-0 text-center text-sm opacity-30 active:opacity-60">
-        toque para pular →
-      </button>
+      <BottomBar
+        left={onPrev ? <BtnSecondary onClick={onPrev} icon="←" label="ANTERIOR" /> : undefined}
+        right={
+          <BtnPrimary
+            onClick={onNext}
+            icon={isLast ? '📋' : '→'}
+            label={isLast ? 'RESUMO' : 'PRÓXIMA'}
+            color={isLast ? '#FF6B6B' : '#4ECDC4'}
+            pulse={isLast}
+          />
+        }
+      />
     </div>
   )
 }
@@ -800,7 +821,7 @@ function ReviewView({
   if (phase === 'stopping' || results.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-        <Image src="/cachorra.png" alt="STOP!" width={240} height={240} className="animate-letter-enter" priority />
+        <Image src="/cachorra/1.png" alt="STOP!" width={240} height={240} className="animate-letter-enter" priority />
         <p className="text-xl font-bold" style={{ color: '#FF6B6B' }}>
           {stoppedBy ? `${stoppedBy} deu STOP!` : 'STOP! Tempo esgotado!'}
         </p>
@@ -813,7 +834,8 @@ function ReviewView({
     const cat = results[idx]
     if (!cat) { setStep('summary'); return null }
     const isLast = idx === results.length - 1
-    const advance = () => isLast ? setStep('summary') : setIdx((i) => Math.min(i + 1, results.length - 1))
+    const advance = () => isLast ? setStep('summary') : setIdx((i) => i + 1)
+    const goBack = idx > 0 ? () => setIdx((i) => i - 1) : null
 
     return (
       <ReviewCategoryCard
@@ -822,9 +844,9 @@ function ReviewView({
         idx={idx}
         total={results.length}
         letter={letter}
-        isLast={isLast}
         myId={myId}
         getAviso={getAviso}
+        onPrev={goBack}
         onNext={advance}
       />
     )
@@ -891,22 +913,26 @@ function ReviewView({
               <div className="divide-y" style={{ borderColor: '#1A1A2E22' }}>
                 {results.map((cat, ci) => {
                   const a = cat.answers.find((ans) => ans.playerId === player.id)
+                  const empty = { answer: '', valid: false, points: 0, duplicate: false, playerId: '', nickname: '' }
                   return (
-                    <div key={cat.categoryId} className="px-4 py-2 flex items-center gap-2">
-                      <span className="text-xs opacity-50 w-20 shrink-0">{cat.categoryLabel}</span>
-                      <span
-                        className="flex-1 text-sm font-medium truncate"
-                        style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff25' }}
-                      >
-                        {a?.answer || '—'}
-                      </span>
+                    <div key={cat.categoryId} className="px-3 py-2 flex items-center gap-2">
                       <Image
-                        src={getAviso(a ?? { answer: '', valid: false, points: 0, duplicate: false, playerId: '', nickname: '' }, letter, ci)}
+                        src={getAviso(a ?? empty, letter, ci)}
                         alt=""
-                        width={30}
-                        height={30}
+                        width={48}
+                        height={48}
+                        style={{ objectFit: 'contain', flexShrink: 0 }}
                       />
-                      <span className="text-xs font-bold w-8 text-right" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <span className="text-xs opacity-50">{cat.categoryLabel}</span>
+                        <span
+                          className="text-sm font-bold truncate"
+                          style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff25' }}
+                        >
+                          {a?.answer || '—'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold shrink-0" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
                         {(a?.points ?? 0) > 0 ? `+${a!.points}` : '0'}
                       </span>
                     </div>
@@ -1003,8 +1029,8 @@ function FinishedView({ players, onHome }: { players: Player[]; onHome: () => vo
       <p className="text-sm opacity-50 animate-pulse">Preparando próxima partida…</p>
 
       <BottomBar
-        left={
-          <BtnSecondary onClick={onHome} label="SAIR" />
+        center={
+          <BtnSecondary onClick={onHome} label="SAIR" icon="🚪" />
         }
       />
     </div>
