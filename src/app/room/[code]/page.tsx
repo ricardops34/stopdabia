@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { connectSocket } from '@/lib/socket/client'
+import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
 import { playTrack, playSfx, stopTrack } from '@/lib/audio/manager'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { Room, Player, CategoryResult, Category, PlayerAnswer } from '@/lib/game/types'
@@ -31,6 +32,7 @@ export default function RoomPage({ params }: PageProps) {
   const [showDemora, setShowDemora] = useState(false)
   const [rematchCountdown, setRematchCountdown] = useState(20)
   const [rematchReady, setRematchReady] = useState(false)
+  const [myId, setMyId] = useState('')
 
   const answersRef = useRef<Record<string, string>>({})
   const sentAnswers = useRef(false)
@@ -39,14 +41,18 @@ export default function RoomPage({ params }: PageProps) {
 
   useEffect(() => {
     const socket = connectSocket()
+    const roomReceived = { current: false }
+    setMyId(socket.id ?? '')
 
     socket.on('room:state', (r) => {
+      roomReceived.current = true
       setRoom(r)
       setPlayers(r.players)
       setPhase(r.phase)
       const me = r.players.find((p) => p.id === socket.id)
       setIsHost(me?.isHost ?? false)
       setIsSpectating(me?.spectating ?? false)
+      setMyId(socket.id ?? '')
     })
 
     socket.on('room:players', (ps) => {
@@ -93,11 +99,10 @@ export default function RoomPage({ params }: PageProps) {
     socket.on('game:letter', (l) => {
       setLetter(l)
       setCountdown(null)
-      // ~20% de chance de exibir um easter egg antes da letra
       if (Math.random() < 0.2) {
-        const n = Math.floor(Math.random() * 10) + 1 // até 10 imagens easter/1.png..10.png
+        const n = Math.floor(Math.random() * 10) + 1
         setEasterEgg(`/easter/${n}.png`)
-        setTimeout(() => setEasterEgg(null), 3000) // some após 3s
+        setTimeout(() => setEasterEgg(null), 3000)
       } else {
         setEasterEgg(null)
       }
@@ -109,15 +114,43 @@ export default function RoomPage({ params }: PageProps) {
     socket.on('room:error', (msg) => setError(msg))
     socket.on('rematch:countdown', (s) => setRematchCountdown(s))
 
-    // Pede o estado atual ao servidor — resolve race condition entre criação e navegação
-    const requestSync = () => socket.emit('room:sync')
+    let syncAttempts = 0
+    let syncTimer: ReturnType<typeof setTimeout> | null = null
+
+    function tryReconnect() {
+      if (roomReceived.current) return
+      try {
+        const raw = sessionStorage.getItem('stop_session')
+        if (!raw) { setError('Sessão expirada. Volte ao início.'); return }
+        const { code: sCode, nickname } = JSON.parse(raw) as { code: string; nickname: string }
+        socket.emit('room:reconnect', sCode, nickname, (ok) => {
+          if (!ok) setError('Sala não encontrada. Ela pode ter encerrado.')
+        })
+      } catch {
+        setError('Não foi possível conectar à sala.')
+      }
+    }
+
+    function trySync() {
+      if (roomReceived.current) return
+      syncAttempts++
+      if (syncAttempts <= 3) {
+        socket.emit('room:sync')
+        syncTimer = setTimeout(trySync, 1000)
+      } else {
+        // sync falhou 3x → tenta reconnect via nickname
+        tryReconnect()
+      }
+    }
+
     if (socket.connected) {
-      requestSync()
+      trySync()
     } else {
-      socket.once('connect', requestSync)
+      socket.once('connect', trySync)
     }
 
     return () => {
+      if (syncTimer) clearTimeout(syncTimer)
       socket.off('room:state')
       socket.off('room:players')
       socket.off('game:phase')
@@ -134,7 +167,11 @@ export default function RoomPage({ params }: PageProps) {
   }, [])
 
   useEffect(() => {
-    if (phase === 'stopping' && !sentAnswers.current) {
+    if (phase === 'playing') {
+      sentAnswers.current = false
+      answersRef.current = {}
+      setAnswers({})
+    } else if (phase === 'stopping' && !sentAnswers.current) {
       sentAnswers.current = true
       const socket = connectSocket()
       socket.emit('game:answers', answersRef.current)
@@ -160,8 +197,8 @@ export default function RoomPage({ params }: PageProps) {
   }
 
   function handleNextRound() {
-    if (!room) return
-    if (isHost) connectSocket().emit('room:start', () => {})
+    if (!isHost) return
+    connectSocket().emit('room:ready', code)
   }
 
   function handleRematchReady() {
@@ -169,20 +206,20 @@ export default function RoomPage({ params }: PageProps) {
     connectSocket().emit('rematch:ready')
   }
 
-  if (!room && phase === 'lobby') {
+  if (!room) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4 px-4" style={{ backgroundColor: '#1A1A2E' }}>
-        <p className="opacity-60 animate-pulse">Conectando à sala {code}…</p>
-      </main>
-    )
-  }
-
-  if (error && !room) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-4 px-4" style={{ backgroundColor: '#1A1A2E' }}>
-        <Image src="/erro sistema.png" alt="Erro" width={240} height={240} />
-        <p className="font-bold text-center" style={{ color: '#FF6B6B' }}>{error}</p>
-        <button onClick={() => router.push('/')} className="text-sm opacity-60">← Voltar ao início</button>
+        {error ? (
+          <>
+            <p className="font-bold text-center" style={{ color: '#FF6B6B' }}>{error}</p>
+            <button onClick={() => router.push('/')} className="text-sm opacity-60 mt-2">← Voltar ao início</button>
+          </>
+        ) : (
+          <>
+            <p className="opacity-60 animate-pulse text-center">Conectando à sala {code}…</p>
+            <button onClick={() => router.push('/')} className="text-xs opacity-30 mt-4">Cancelar</button>
+          </>
+        )}
       </main>
     )
   }
@@ -253,6 +290,7 @@ export default function RoomPage({ params }: PageProps) {
           letter={letter}
           results={results}
           players={players}
+          myId={myId}
           stoppedBy={stoppedBy}
           phase={phase}
           isHost={isHost}
@@ -300,9 +338,14 @@ function LobbyView({
   const [showCats, setShowCats] = useState(false)
 
   function toggleCat(id: string) {
-    setSelectedCats((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : prev.length < 8 ? [...prev, id] : prev,
-    )
+    setSelectedCats((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((c) => c !== id)
+        : prev.length < 8 ? [...prev, id] : prev
+      // Sincroniza com o servidor imediatamente
+      connectSocket().emit('room:settings', next)
+      return next
+    })
   }
 
   function copyCode() {
@@ -328,140 +371,147 @@ function LobbyView({
   }
 
   return (
-    <div className="flex flex-col items-center px-4 py-6 gap-4 max-w-md mx-auto w-full min-h-screen">
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="STOP - ADEDONHA" width={140} style={{ height: 'auto', display: 'block' }} />
-
-      {/* ── Compartilhar ── */}
-      <div
-        className="w-full rounded-2xl p-4 flex flex-col items-center gap-3"
-        style={{ backgroundColor: '#0F3460', border: '2px solid #FFD93D' }}
-      >
-        <p className="text-xs font-bold uppercase tracking-widest opacity-50">Convide seus amigos</p>
-
-        {/* Código — clica para copiar */}
-        <button
-          onClick={copyCode}
-          className="flex items-center gap-2 active:scale-95 transition-transform"
-          title="Clique para copiar"
-        >
-          <span className="text-5xl font-black tracking-[0.25em]" style={{ color: '#FFD93D' }}>{code}</span>
-          <span className="text-xl opacity-60">{copied === 'code' ? '✅' : '📋'}</span>
-        </button>
-
-        {copied === 'code' && (
-          <p className="text-xs font-bold -mt-1 animate-fade-in" style={{ color: '#95E06C' }}>Código copiado!</p>
-        )}
-
-        <div className="flex gap-2 w-full">
-          <button
-            onClick={copyLink}
-            className="flex-1 py-2 rounded-xl text-sm font-bold active:scale-95 transition-all"
-            style={{ backgroundColor: '#16213E', color: copied === 'link' ? '#95E06C' : '#4ECDC4' }}
-          >
-            {copied === 'link' ? '✅ Copiado!' : '🔗 Copiar link'}
-          </button>
-          <button
-            onClick={shareLink}
-            className="flex-1 py-2 rounded-xl text-sm font-bold active:scale-95 transition-all"
-            style={{ backgroundColor: '#16213E', color: '#FF9500' }}
-          >
-            📤 Compartilhar
-          </button>
-        </div>
+      {/* Cabeçalho fixo */}
+      <div className="shrink-0 flex items-center justify-center pt-4 pb-2 px-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="STOP - ADEDONHA" width={120} style={{ height: 'auto', display: 'block' }} />
       </div>
 
-      {/* ── Jogadores ── */}
-      <div className="w-full rounded-2xl p-4 flex flex-col gap-3" style={{ backgroundColor: '#0F3460' }}>
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider opacity-60">Na sala</p>
-          <span className="text-xs opacity-40">{players.length}/10</span>
-        </div>
+      {/* Conteúdo com scroll */}
+      <div className="flex-1 overflow-y-auto px-4 pb-32 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
+        <div className="max-w-md mx-auto w-full flex flex-col gap-3">
 
-        <ul className="flex flex-col gap-2">
-          {players.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 py-1">
-              <span
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ backgroundColor: p.isHost ? '#FFD93D' : p.spectating ? '#ffffff22' : '#4ECDC4', color: '#1A1A2E' }}
+          {/* ── Compartilhar ── */}
+          <div
+            className="w-full rounded-2xl p-4 flex flex-col items-center gap-3"
+            style={{ backgroundColor: '#0F3460', border: '2px solid #FFD93D' }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest opacity-50">Convide seus amigos</p>
+
+            <button
+              onClick={copyCode}
+              className="flex items-center gap-2 active:scale-95 transition-transform"
+              title="Clique para copiar"
+            >
+              <span className="text-4xl font-black tracking-[0.2em]" style={{ color: '#FFD93D' }}>{code}</span>
+              <span className="text-lg opacity-60">{copied === 'code' ? '✅' : '📋'}</span>
+            </button>
+
+            {copied === 'code' && (
+              <p className="text-xs font-bold -mt-1 animate-fade-in" style={{ color: '#95E06C' }}>Código copiado!</p>
+            )}
+
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={copyLink}
+                className="flex-1 py-2 rounded-xl text-sm font-bold active:scale-95 transition-all"
+                style={{ backgroundColor: '#16213E', color: copied === 'link' ? '#95E06C' : '#4ECDC4' }}
               >
-                {p.nickname[0].toUpperCase()}
-              </span>
-              <span className="font-medium flex-1" style={{ opacity: p.spectating ? 0.6 : 1 }}>{p.nickname}</span>
-              {p.isHost && (
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFD93D22', color: '#FFD93D' }}>host</span>
-              )}
-              {p.spectating && (
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ffffff11', color: '#ffffff60' }}>assistindo</span>
-              )}
-            </li>
-          ))}
-        </ul>
+                {copied === 'link' ? '✅ Copiado!' : '🔗 Copiar link'}
+              </button>
+              <button
+                onClick={shareLink}
+                className="flex-1 py-2 rounded-xl text-sm font-bold active:scale-95 transition-all"
+                style={{ backgroundColor: '#16213E', color: '#FF9500' }}
+              >
+                📤 Compartilhar
+              </button>
+            </div>
+          </div>
 
-        {players.length === 1 && (
-          <p className="text-xs opacity-40 text-center animate-pulse">Aguardando amigos entrarem…</p>
-        )}
-      </div>
+          {/* ── Jogadores ── */}
+          <div className="w-full rounded-2xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#0F3460' }}>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-bold uppercase tracking-wider opacity-60">Na sala</p>
+              <span className="text-xs opacity-40">{players.length}/10</span>
+            </div>
 
-      {/* ── Categorias (host, colapsável) ── */}
-      {isHost && (
-        <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
-          <button
-            onClick={() => setShowCats((v) => !v)}
-            className="w-full px-4 py-3 flex items-center justify-between active:opacity-70"
-          >
-            <p className="text-xs font-bold uppercase tracking-wider opacity-60">Categorias ({selectedCats.length}/8)</p>
-            <span className="opacity-40 text-sm">{showCats ? '▲' : '▼'}</span>
-          </button>
-
-          {showCats && (
-            <div className="px-4 pb-4 flex flex-wrap gap-2">
-              {ALL_CATEGORIES.map((cat) => {
-                const sel = selectedCats.includes(cat.id)
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => toggleCat(cat.id)}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95"
-                    style={{
-                      backgroundColor: sel ? '#FF6B6B' : '#16213E',
-                      color: sel ? 'white' : '#ffffff80',
-                      border: sel ? '2px solid #FF6B6B' : '2px solid transparent',
-                    }}
+            <ul className="flex flex-col gap-1.5">
+              {players.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 py-1">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
+                    style={{ backgroundColor: p.isHost ? '#FFD93D' : p.spectating ? '#ffffff22' : '#4ECDC4', color: '#1A1A2E' }}
                   >
-                    {cat.label}
-                  </button>
-                )
-              })}
+                    {p.avatar
+                      ? <img src={p.avatar} alt={p.nickname} style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                      : p.nickname[0].toUpperCase()
+                    }
+                  </div>
+                  <span className="font-medium flex-1 text-sm" style={{ opacity: p.spectating ? 0.6 : 1 }}>{p.nickname}</span>
+                  {p.isHost && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFD93D22', color: '#FFD93D' }}>host</span>}
+                  {p.spectating && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ffffff11', color: '#ffffff60' }}>assistindo</span>}
+                </li>
+              ))}
+            </ul>
+
+            {players.length === 1 && (
+              <p className="text-xs opacity-40 text-center animate-pulse pt-1">Aguardando amigos entrarem…</p>
+            )}
+          </div>
+
+          {/* ── Categorias (host, colapsável) ── */}
+          {isHost && (
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
+              <button
+                onClick={() => setShowCats((v) => !v)}
+                className="w-full px-4 py-3 flex items-center justify-between active:opacity-70"
+              >
+                <p className="text-xs font-bold uppercase tracking-wider opacity-60">Categorias ({selectedCats.length}/8)</p>
+                <span className="opacity-40 text-sm">{showCats ? '▲' : '▼'}</span>
+              </button>
+
+              {showCats && (
+                <div className="px-4 pb-4 flex flex-wrap gap-2">
+                  {ALL_CATEGORIES.map((cat) => {
+                    const sel = selectedCats.includes(cat.id)
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => toggleCat(cat.id)}
+                        className="px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95"
+                        style={{
+                          backgroundColor: sel ? '#FF6B6B' : '#16213E',
+                          color: sel ? 'white' : '#ffffff80',
+                          border: sel ? '2px solid #FF6B6B' : '2px solid transparent',
+                        }}
+                      >
+                        {cat.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {error && <p className="text-sm font-medium" style={{ color: '#FF6B6B' }}>{error}</p>}
-
-      <div className="flex-1" />
-
-      {/* ── Botão iniciar ── */}
-      {isHost ? (
-        <div className="w-full flex flex-col gap-2 pb-2">
-          <button
-            onClick={onStart}
-            disabled={players.length < 2}
-            className="w-full py-5 text-2xl font-bold rounded-2xl text-white shadow-xl active:scale-95 transition-all disabled:opacity-40"
-            style={{ backgroundColor: '#FF6B6B' }}
-          >
-            ▶ Iniciar Partida
-          </button>
-          {players.length < 2 && (
-            <p className="text-center text-xs opacity-40">Precisa de pelo menos 2 jogadores para iniciar</p>
+          {!isHost && (
+            <div className="w-full py-4 rounded-2xl text-center" style={{ backgroundColor: '#0F3460' }}>
+              <p className="opacity-60 text-sm animate-pulse">Aguardando o host iniciar a partida…</p>
+            </div>
           )}
+
+          {error && <p className="text-sm font-medium text-center" style={{ color: '#FF6B6B' }}>{error}</p>}
         </div>
+      </div>
+
+      {/* ── Botão Iniciar flutuante (host) ── */}
+      {isHost ? (
+        <BottomBar
+          right={
+            <BtnPrimary
+              onClick={onStart}
+              disabled={players.length < 2}
+              label="INICIAR"
+              icon="▶"
+              pulse
+            />
+          }
+        />
       ) : (
-        <div className="w-full py-4 rounded-2xl text-center" style={{ backgroundColor: '#0F3460' }}>
-          <p className="opacity-60 text-sm animate-pulse">Aguardando o host iniciar a partida…</p>
-        </div>
+        <BottomBar />
       )}
     </div>
   )
@@ -581,7 +631,7 @@ function PlayingView({
       )}
 
       {/* Campos de resposta */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-2 pb-32 flex flex-col gap-3">
         {categories.map((cat) => (
           <div key={cat.id} className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase tracking-wider opacity-60">
@@ -603,13 +653,15 @@ function PlayingView({
       </div>
 
       {/* Botão STOP flutuante */}
-      <button
-        onClick={onStop}
-        className="fixed right-6 z-40 animate-pulse-stop font-extrabold text-white shadow-2xl active:scale-90 transition-transform"
-        style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#FF6B6B', fontSize: 13, border: '3px solid #FFD93D', bottom: 88 }}
-      >
-        STOP!
-      </button>
+      <BottomBar
+        center={
+          <BtnPrimary
+            onClick={onStop}
+            label="STOP!"
+            pulse
+          />
+        }
+      />
     </div>
   )
 }
@@ -624,11 +676,12 @@ interface ReviewCategoryCardProps {
   total: number
   letter: string
   isLast: boolean
+  myId: string
   getAviso: (a: PlayerAnswer, letter: string, idx: number) => string
   onNext: () => void
 }
 
-function ReviewCategoryCard({ cat, idx, total, letter, isLast, getAviso, onNext }: ReviewCategoryCardProps) {
+function ReviewCategoryCard({ cat, idx, total, letter, isLast, myId, getAviso, onNext }: ReviewCategoryCardProps) {
   const [elapsed, setElapsed] = useState(0)
   const onNextRef = useRef(onNext)
   onNextRef.current = onNext
@@ -636,70 +689,83 @@ function ReviewCategoryCard({ cat, idx, total, letter, isLast, getAviso, onNext 
   useEffect(() => {
     setElapsed(0)
     const interval = setInterval(() => {
-      setElapsed((e) => {
-        const next = e + 1
-        if (next >= REVIEW_SECS) {
-          clearInterval(interval)
-          onNextRef.current()
-        }
-        return next
-      })
+      setElapsed((e) => e + 1)
     }, 1000)
     return () => clearInterval(interval)
   }, [cat.categoryId])
 
+  useEffect(() => {
+    if (elapsed >= REVIEW_SECS) {
+      onNextRef.current()
+    }
+  }, [elapsed])
+
+  // Coloca a resposta do jogador atual primeiro
+  const sortedAnswers = [...cat.answers].sort((a, b) => {
+    if (a.playerId === myId) return -1
+    if (b.playerId === myId) return 1
+    return 0
+  })
+
   return (
-    <div className="flex flex-col min-h-screen px-4 py-6 max-w-md mx-auto w-full">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 44, height: 44, backgroundColor: '#FFD93D' }}>
-            <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={34} height={34} />
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
+      {/* Topo */}
+      <div className="shrink-0 px-4 pt-5 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
+              <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
+            </div>
+            <span className="text-sm opacity-50">{idx + 1} / {total}</span>
           </div>
-          <span className="text-sm opacity-50">{idx + 1} / {total}</span>
+          <span className="text-sm font-bold tabular-nums" style={{ color: '#4ECDC4' }}>
+            {REVIEW_SECS - elapsed}s
+          </span>
         </div>
-        <span className="text-sm font-bold tabular-nums" style={{ color: '#4ECDC4' }}>
-          {REVIEW_SECS - elapsed}s
-        </span>
+        <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: '#0F3460' }}>
+          <div
+            className="h-1.5 rounded-full transition-all duration-1000"
+            style={{ width: `${Math.min((elapsed / REVIEW_SECS) * 100, 100)}%`, backgroundColor: isLast ? '#FF6B6B' : '#4ECDC4' }}
+          />
+        </div>
       </div>
 
-      <div className="w-full h-2 rounded-full mb-6" style={{ backgroundColor: '#0F3460' }}>
-        <div
-          className="h-2 rounded-full transition-all duration-1000"
-          style={{ width: `${Math.min((elapsed / REVIEW_SECS) * 100, 100)}%`, backgroundColor: isLast ? '#FF6B6B' : '#4ECDC4' }}
-        />
-      </div>
+      {/* Categoria */}
+      <h2 className="text-2xl font-bold text-center px-4 pb-3 shrink-0" style={{ color: '#FFD93D' }}>
+        {cat.categoryLabel}
+      </h2>
 
-      <div className="flex-1 flex flex-col gap-4 animate-slide-up">
-        <h2 className="text-3xl font-bold text-center" style={{ color: '#FFD93D' }}>
-          {cat.categoryLabel}
-        </h2>
-
-        <div className="flex flex-col gap-3">
-          {cat.answers.map((a, ai) => (
+      {/* Respostas com scroll */}
+      <div className="flex-1 overflow-y-auto px-4 pb-20 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
+        {sortedAnswers.map((a, ai) => {
+          const isMe = a.playerId === myId
+          return (
             <div
               key={a.playerId}
-              className="rounded-2xl p-4 flex items-center justify-between gap-3"
-              style={{ backgroundColor: '#0F3460' }}
+              className="rounded-2xl p-4 flex items-center gap-3"
+              style={{ backgroundColor: '#0F3460', border: isMe ? '2px solid #FFD93D' : '2px solid transparent' }}
             >
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs opacity-60 font-medium">{a.nickname}</span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-bold mb-0.5" style={{ color: isMe ? '#FFD93D' : 'rgba(255,255,255,0.5)' }}>
+                  {isMe ? 'Você' : a.nickname}
+                </span>
                 <span className="text-xl font-bold truncate" style={{ color: a.valid ? '#95E06C' : a.answer ? '#FF6B6B' : '#ffffff30' }}>
                   {a.answer || '—'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Image src={getAviso(a, letter, idx + ai)} alt="" width={72} height={72} />
-                <span className="font-bold text-lg w-10 text-right" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <Image src={getAviso(a, letter, idx + ai)} alt="" width={64} height={64} />
+                <span className="font-bold text-base" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
                   {a.points > 0 ? `+${a.points}` : '0'}
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
 
-      <button onClick={onNext} className="mt-6 py-3 w-full text-sm opacity-40 active:opacity-70 transition-opacity">
-        Toque para pular →
+      <button onClick={onNext} className="fixed bottom-8 left-0 right-0 text-center text-sm opacity-30 active:opacity-60">
+        toque para pular →
       </button>
     </div>
   )
@@ -711,11 +777,12 @@ function getAviso(answer: PlayerAnswer, letter: string, idx = 0): string {
 }
 
 function ReviewView({
-  letter, results, players, stoppedBy, phase, isHost, onNext, maxRounds, currentRound,
+  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound,
 }: {
   letter: string
   results: CategoryResult[]
   players: Player[]
+  myId: string
   stoppedBy: string | null
   phase: Room['phase']
   isHost: boolean
@@ -727,10 +794,8 @@ function ReviewView({
   const [step, setStep] = useState<'words' | 'summary'>('words')
   const isLastRound = currentRound >= maxRounds
 
-  // Reseta quando chegam novos resultados
   useEffect(() => { setIdx(0); setStep('words') }, [results])
 
-  // Aguardando validação — mostra cachorra.png
   if (phase === 'stopping' || results.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
@@ -743,7 +808,6 @@ function ReviewView({
     )
   }
 
-  // ── Palavra por palavra — auto-avança em 5s ──
   if (step === 'words') {
     const cat = results[idx]
     if (!cat) { setStep('summary'); return null }
@@ -758,81 +822,136 @@ function ReviewView({
         total={results.length}
         letter={letter}
         isLast={isLast}
+        myId={myId}
         getAviso={getAviso}
         onNext={advance}
       />
     )
   }
 
-  // ── Resumo final ──
+  // ── Resumo: jogador atual primeiro ──
+  const sortedPlayers = [...players].sort((a, b) => {
+    if (a.id === myId) return -1
+    if (b.id === myId) return 1
+    return 0
+  })
+
   return (
-    <div className="flex flex-col min-h-screen px-4 py-6 gap-4 max-w-md mx-auto w-full">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 44, height: 44, backgroundColor: '#FFD93D' }}>
-          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={34} height={34} />
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
+      {/* Cabeçalho */}
+      <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3">
+        <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
+          <Image src={`/letras/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
         </div>
-        <h2 className="text-xl font-bold">Resumo da Rodada</h2>
+        <h2 className="text-lg font-bold flex-1">Resumo da Rodada</h2>
       </div>
 
-      {/* Tabela de respostas por jogador */}
-      {players.map((player) => (
-        <div key={player.id} className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
-          <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: '#16213E' }}>
-            <span className="font-bold">{player.nickname}</span>
-            <span className="font-bold text-sm" style={{ color: '#FFD93D' }}>
-              {results.reduce((s, cat) => {
-                const a = cat.answers.find((a) => a.playerId === player.id)
-                return s + (a?.points ?? 0)
-              }, 0)} pts nessa rodada
-            </span>
-          </div>
-          <div className="divide-y" style={{ borderColor: '#1A1A2E' }}>
-            {results.map((cat, ci) => {
-              const a = cat.answers.find((ans) => ans.playerId === player.id)
-              return (
-                <div key={cat.categoryId} className="px-4 py-2 flex items-center justify-between gap-2">
-                  <span className="text-xs opacity-50 w-20 shrink-0">{cat.categoryLabel}</span>
-                  <span
-                    className="flex-1 text-sm font-medium truncate"
-                    style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff30' }}
-                  >
-                    {a?.answer || '—'}
-                  </span>
-                  <Image src={getAviso(a ?? { answer: '', valid: false, points: 0, duplicate: false, playerId: '', nickname: '' }, letter, ci)} alt="" width={32} height={32} />
-                  <span className="text-sm font-bold w-8 text-right" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
-                    {(a?.points ?? 0) > 0 ? `+${a!.points}` : '0'}
-                  </span>
+      {/* Conteúdo com scroll */}
+      <div className="flex-1 overflow-y-auto px-4 pb-40 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
+
+        {/* Cards por jogador — "você" sempre primeiro */}
+        {sortedPlayers.map((player) => {
+          const isMe = player.id === myId
+          const roundPts = results.reduce((s, cat) => {
+            const a = cat.answers.find((a) => a.playerId === player.id)
+            return s + (a?.points ?? 0)
+          }, 0)
+
+          return (
+            <div
+              key={player.id}
+              className="rounded-2xl overflow-hidden"
+              style={{
+                backgroundColor: '#0F3460',
+                border: isMe ? '2px solid #FFD93D' : '2px solid transparent',
+              }}
+            >
+              {/* Header do jogador */}
+              <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: '#16213E' }}>
+                <div
+                  className="w-7 h-7 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-xs font-bold"
+                  style={{ backgroundColor: isMe ? '#FFD93D' : '#4ECDC4', color: '#1A1A2E' }}
+                >
+                  {player.avatar
+                    ? <img src={player.avatar} alt="" style={{ width: 28, height: 28, objectFit: 'cover' }} />
+                    : player.nickname[0].toUpperCase()
+                  }
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
+                <span className="font-bold flex-1 text-sm">
+                  {isMe ? 'Você' : player.nickname}
+                  {isMe && <span className="ml-2 text-xs opacity-50">({player.nickname})</span>}
+                </span>
+                <span className="font-bold text-sm" style={{ color: roundPts > 0 ? '#FFD93D' : '#ffffff40' }}>
+                  {roundPts > 0 ? `+${roundPts}` : '0'} pts
+                </span>
+              </div>
 
-      {/* Placar geral */}
-      <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#0F3460' }}>
-        <p className="text-xs font-bold uppercase tracking-wider opacity-60">Placar Geral</p>
-        {players.map((p, i) => (
-          <div key={p.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm opacity-50 w-4">{i + 1}.</span>
-              <span className="font-medium">{p.nickname}</span>
+              {/* Respostas */}
+              <div className="divide-y" style={{ borderColor: '#1A1A2E22' }}>
+                {results.map((cat, ci) => {
+                  const a = cat.answers.find((ans) => ans.playerId === player.id)
+                  return (
+                    <div key={cat.categoryId} className="px-4 py-2 flex items-center gap-2">
+                      <span className="text-xs opacity-50 w-20 shrink-0">{cat.categoryLabel}</span>
+                      <span
+                        className="flex-1 text-sm font-medium truncate"
+                        style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff25' }}
+                      >
+                        {a?.answer || '—'}
+                      </span>
+                      <Image
+                        src={getAviso(a ?? { answer: '', valid: false, points: 0, duplicate: false, playerId: '', nickname: '' }, letter, ci)}
+                        alt=""
+                        width={30}
+                        height={30}
+                      />
+                      <span className="text-xs font-bold w-8 text-right" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
+                        {(a?.points ?? 0) > 0 ? `+${a!.points}` : '0'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-            <span className="font-bold" style={{ color: '#FFD93D' }}>{p.totalScore}</span>
-          </div>
-        ))}
+          )
+        })}
+
+        {/* Placar geral */}
+        <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ backgroundColor: '#0F3460' }}>
+          <p className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">Placar Geral</p>
+          {[...players].sort((a, b) => b.totalScore - a.totalScore).map((p, i) => (
+            <div key={p.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm opacity-40 w-5">{i + 1}.</span>
+                <span className="font-medium text-sm" style={{ color: p.id === myId ? '#FFD93D' : 'white' }}>
+                  {p.id === myId ? 'Você' : p.nickname}
+                </span>
+              </div>
+              <span className="font-bold text-sm" style={{ color: '#FFD93D' }}>{p.totalScore}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* Botão flutuante */}
       {isHost ? (
-        <button
-          onClick={onNext}
-          className="w-full py-4 text-xl font-bold rounded-2xl text-white active:scale-95 transition-all"
-          style={{ backgroundColor: isLastRound ? '#FF6B6B' : '#4ECDC4', color: isLastRound ? 'white' : '#1A1A2E' }}
-        >
-          {isLastRound ? 'Ver Resultado Final' : 'Próxima Rodada'}
-        </button>
+        <BottomBar
+          center={
+            <BtnPrimary
+              onClick={onNext}
+              label={isLastRound ? 'RESULTADO' : 'PRÓXIMA'}
+              icon={isLastRound ? '🏆' : '▶'}
+              color={isLastRound ? '#FF6B6B' : '#4ECDC4'}
+              pulse
+            />
+          }
+        />
       ) : (
-        <p className="text-center opacity-50 text-sm pb-4">Aguardando o host…</p>
+        <BottomBar
+          center={
+            <span className="text-sm font-bold opacity-50 px-4">Aguardando host…</span>
+          }
+        />
       )}
     </div>
   )
@@ -882,13 +1001,11 @@ function FinishedView({ players, onHome }: { players: Player[]; onHome: () => vo
 
       <p className="text-sm opacity-50 animate-pulse">Preparando próxima partida…</p>
 
-      <button
-        onClick={onHome}
-        className="w-full py-3 text-base font-bold rounded-2xl active:scale-95 transition-all"
-        style={{ backgroundColor: '#16213E', color: '#ffffff60' }}
-      >
-        Sair
-      </button>
+      <BottomBar
+        left={
+          <BtnSecondary onClick={onHome} label="SAIR" />
+        }
+      />
     </div>
   )
 }
@@ -931,17 +1048,17 @@ function RematchView({ players, countdown, ready, onReady }: {
       </div>
 
       {!ready ? (
-        <button
-          onClick={onReady}
-          className="w-full py-5 text-2xl font-bold rounded-2xl text-white active:scale-95 transition-all shadow-xl animate-pulse-stop"
-          style={{ backgroundColor: '#FF6B6B' }}
-        >
-          ✅ Topo! Vamos jogar!
-        </button>
+        <BottomBar
+          center={
+            <BtnPrimary onClick={onReady} label="VAMOS LÁ!" icon="✅" pulse />
+          }
+        />
       ) : (
-        <div className="w-full py-4 rounded-2xl text-center" style={{ backgroundColor: '#0F3460' }}>
-          <p className="font-bold animate-pulse" style={{ color: '#95E06C' }}>Aguardando os outros…</p>
-        </div>
+        <BottomBar
+          center={
+            <span className="text-sm font-bold opacity-50 px-4">Aguardando outros…</span>
+          }
+        />
       )}
     </div>
   )

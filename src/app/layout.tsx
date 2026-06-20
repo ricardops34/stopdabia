@@ -15,7 +15,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
-        <MuteButton />
       </body>
     </html>
   )

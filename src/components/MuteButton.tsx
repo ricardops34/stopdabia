@@ -25,7 +25,7 @@ export default function MuteButton() {
     <button
       onClick={toggle}
       aria-label={muted ? 'Ativar som' : 'Silenciar'}
-      className="fixed bottom-4 right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center text-xl shadow-lg active:scale-90 transition-transform"
+      className="fixed top-4 right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center text-xl shadow-lg active:scale-90 transition-transform"
       style={{ backgroundColor: '#0F3460', border: '2px solid #ffffff22' }}
     >
       {muted ? '🔇' : '🔊'}

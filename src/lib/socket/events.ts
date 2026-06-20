@@ -11,6 +11,9 @@ export interface ClientToServerEvents {
   ) => void
   'room:start': (cb: (res: { ok: boolean; error?: string }) => void) => void
   'room:sync': () => void
+  'room:reconnect': (code: string, nickname: string, cb: (ok: boolean) => void) => void
+  'room:ready': (code: string) => void
+  'room:settings': (categories: string[]) => void
   'game:stop': () => void
   'game:answers': (answers: Record<string, string>) => void
   'rematch:ready': () => void

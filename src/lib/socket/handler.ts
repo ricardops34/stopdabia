@@ -6,6 +6,7 @@ import { getRoom, setRoom, deleteRoom } from './store'
 import {
   generateRoomCode,
   drawLetter,
+  ALL_CATEGORIES,
   DEFAULT_CATEGORIES,
   DEFAULT_MAX_ROUNDS,
   DEFAULT_TIME_PER_ROUND,
@@ -181,7 +182,7 @@ export function attachSocketServer(httpServer: HttpServer): IO {
 
     socket.on('game:answers', (answers) => {
       const room = getRoom(socket.data.roomCode)
-      if (!room || room.phase !== 'playing' || !room.currentRound) return
+      if (!room || !['playing', 'stopping'].includes(room.phase) || !room.currentRound) return
       if (!room.currentRound.answers[socket.id]) {
         room.currentRound.answers[socket.id] = {}
       }
@@ -234,6 +235,68 @@ export function attachSocketServer(httpServer: HttpServer): IO {
           socket.emit('review:results', room.currentRound.results)
         }
       }
+    })
+
+    // Host atualiza categorias antes de iniciar
+    socket.on('room:settings', (categoryIds: string[]) => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room || room.hostId !== socket.id || room.phase !== 'lobby') return
+      const cats = ALL_CATEGORIES.filter((c) => categoryIds.includes(c.id))
+      if (cats.length < 1 || cats.length > 8) return
+      room.settings.categories = cats
+      setRoom(room)
+    })
+
+    // Avança após revisão: lobby (próxima) ou finished (última rodada)
+    socket.on('room:ready', (code: string) => {
+      const room = getRoom(code?.toUpperCase() || socket.data.roomCode)
+      if (!room) return
+      // Aceita o host pelo id atual ou pelo nickname (após reconexão)
+      const isHost = room.hostId === socket.id ||
+        room.players.find((p) => p.nickname === socket.data.nickname)?.isHost
+      if (!isHost) return
+      if (!['review'].includes(room.phase)) return
+
+      const isLastRound = room.rounds.length >= room.settings.maxRounds
+      if (isLastRound) {
+        room.phase = 'finished'
+      } else {
+        room.phase = 'lobby'
+      }
+      // Garante que o socket atual é o host
+      room.hostId = socket.id
+      setRoom(room)
+      broadcastRoom(io, room)
+      io.to(room.code).emit('game:phase', room.phase)
+    })
+
+    // Reconexão: socket perdeu dados mas jogador ainda está na sala
+    socket.on('room:reconnect', (code: string, nickname: string, cb: (ok: boolean) => void) => {
+      const room = getRoom(code.toUpperCase())
+      if (!room) return cb(false)
+      const player = room.players.find((p) => p.nickname.toLowerCase() === nickname.toLowerCase())
+      if (!player) return cb(false)
+
+      const oldId = player.id
+      player.id = socket.id
+      if (room.hostId === oldId) room.hostId = socket.id
+      setRoom(room)
+
+      socket.data.roomCode = room.code
+      socket.data.playerId = socket.id
+      socket.data.nickname = nickname
+      socket.join(room.code)
+
+      socket.emit('room:state', room)
+      socket.emit('room:players', room.players)
+      socket.emit('game:phase', room.phase)
+      if (room.currentRound) {
+        socket.emit('game:letter', room.currentRound.letter)
+        if (room.currentRound.results.length > 0) {
+          socket.emit('review:results', room.currentRound.results)
+        }
+      }
+      cb(true)
     })
 
     socket.on('room:leave', () => handleDisconnect(io, socket))

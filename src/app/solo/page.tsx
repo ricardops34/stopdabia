@@ -9,6 +9,7 @@ import { computeCategoryScores } from '@/lib/game/scoring'
 import { playTrack, stopTrack } from '@/lib/audio/manager'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { AnswerOutcome } from '@/lib/game/types'
+import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
 
 type SoloPhase = 'config' | 'letter' | 'countdown' | 'playing' | 'interlude' | 'review' | 'result'
 type ReviewStep = 'words' | 'summary'
@@ -331,17 +332,7 @@ export default function SoloPage() {
           <img src="/logo.png" alt="STOP ADEDONHA" width={160} style={{ height: 'auto', display: 'block' }} />
         </div>
 
-        {/* Botão Voltar flutuante — lado esquerdo */}
-        <button
-          onClick={() => router.push('/')}
-          className="fixed left-6 z-40 flex flex-col items-center justify-center gap-0.5 text-white shadow-2xl active:scale-90 transition-transform"
-          style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#0F3460', border: '3px solid #4ECDC4', bottom: 88 }}
-        >
-          <span style={{ fontSize: 26, lineHeight: 1 }}>←</span>
-          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1, opacity: 0.8 }}>VOLTAR</span>
-        </button>
-
-        {/* Conteúdo com scroll interno */}
+        </div>
         <div className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-4" style={{ scrollbarWidth: 'none' }}>
           {/* Tempo */}
           <div className="w-full rounded-2xl p-4 flex flex-col gap-3" style={{ backgroundColor: '#0F3460' }}>
@@ -389,15 +380,20 @@ export default function SoloPage() {
           </div>
         </div>
 
-        {/* Botão Jogar flutuante estilo STOP */}
-        <button
-          onClick={startGame}
-          disabled={selectedCats.length === 0}
-          className="fixed right-6 z-40 font-extrabold text-white shadow-2xl active:scale-90 transition-transform disabled:opacity-40 disabled:animate-none animate-pulse-stop"
-          style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#FF6B6B', fontSize: 13, border: '3px solid #FFD93D', bottom: 88 }}
-        >
-          JOGAR!
-        </button>
+        <BottomBar
+          center={
+            <>
+              <BtnSecondary onClick={() => router.push('/')} label="VOLTAR" />
+              <BtnPrimary
+                onClick={startGame}
+                disabled={selectedCats.length === 0}
+                label="JOGAR!"
+                icon="▶"
+                pulse
+              />
+            </>
+          }
+        />
       </main>
     )
   }
@@ -466,13 +462,11 @@ export default function SoloPage() {
           ))}
         </div>
 
-        <button
-          onClick={handleStop}
-          className="fixed right-6 z-40 animate-pulse-stop font-extrabold text-white shadow-2xl active:scale-90 transition-transform"
-          style={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#FF6B6B', fontSize: 13, border: '3px solid #FFD93D', bottom: 88 }}
-        >
-          STOP!
-        </button>
+        <BottomBar
+          center={
+            <BtnPrimary onClick={handleStop} label="STOP!" pulse />
+          }
+        />
       </div>
     )
   }
@@ -560,13 +554,13 @@ export default function SoloPage() {
           <span className="text-2xl font-bold" style={{ color: '#FFD93D' }}>{total} / {maxPossible}</span>
         </div>
 
-        <button
-          onClick={() => setPhase('result')}
-          className="w-full py-4 text-xl font-bold rounded-2xl active:scale-95 transition-all"
-          style={{ backgroundColor: '#4ECDC4', color: '#1A1A2E' }}
-        >
-          Ver Resultado Final
-        </button>
+        </div>
+
+        <BottomBar
+          center={
+            <BtnPrimary onClick={() => setPhase('result')} label="RESULTADO" icon="🏆" color="#4ECDC4" pulse />
+          }
+        />
       </div>
     )
   }
@@ -591,22 +585,14 @@ export default function SoloPage() {
 
         <Image src={`/cachorra/${cachorra}.png`} alt="cachorra" width={140} height={140} />
 
-        <div className="flex flex-col w-full gap-3">
-          <button
-            onClick={() => { setPhase('config') }}
-            className="w-full py-4 text-xl font-bold rounded-2xl text-white active:scale-95 transition-all"
-            style={{ backgroundColor: '#FF6B6B' }}
-          >
-            Jogar de Novo
-          </button>
-          <button
-            onClick={() => router.push('/')}
-            className="w-full py-3 text-base font-bold rounded-2xl active:scale-95 transition-all"
-            style={{ backgroundColor: '#16213E', color: '#ffffff80' }}
-          >
-            Voltar ao Início
-          </button>
-        </div>
+        <BottomBar
+          center={
+            <>
+              <BtnSecondary onClick={() => router.push('/')} label="INÍCIO" icon="🏠" />
+              <BtnPrimary onClick={() => { setPhase('config') }} label="DE NOVO" icon="🔄" pulse />
+            </>
+          }
+        />
       </div>
     )
   }
