@@ -15,34 +15,23 @@ type View = 'home' | 'play' | 'friends'
 const AVATARS = Array.from({ length: 15 }, (_, i) => `/avatar/avatar_${String(i + 1).padStart(2, '0')}.png`)
 
 const BG_LETTERS = [
-  { l: 'a', top: '7%', left: '3%', size: 52, rot: -20, op: 0.75 },
-  { l: 'b', top: '13%', left: '20%', size: 36, rot: 12, op: 0.55 },
-  { l: 'c', top: '5%', left: '68%', size: 46, rot: -10, op: 0.7 },
-  { l: 'd', top: '18%', left: '84%', size: 34, rot: 18, op: 0.55 },
-  { l: 'e', top: '32%', left: '1%', size: 40, rot: -15, op: 0.6 },
-  { l: 'f', top: '40%', left: '87%', size: 48, rot: 8, op: 0.65 },
-  { l: 'g', top: '53%', left: '5%', size: 36, rot: 22, op: 0.5 },
-  { l: 'h', top: '60%', left: '80%', size: 42, rot: -12, op: 0.6 },
-  { l: 'k', top: '70%', left: '10%', size: 50, rot: -8, op: 0.7 },
-  { l: 'l', top: '73%', left: '74%', size: 38, rot: 16, op: 0.55 },
-  { l: 'm', top: '26%', left: '7%', size: 32, rot: -25, op: 0.45 },
-  { l: 'n', top: '16%', left: '89%', size: 30, rot: 20, op: 0.45 },
-  { l: 'p', top: '46%', left: '2%', size: 44, rot: 10, op: 0.55 },
-  { l: 'r', top: '48%', left: '91%', size: 36, rot: -18, op: 0.5 },
-  { l: 's', top: '80%', left: '4%', size: 40, rot: 14, op: 0.55 },
-  { l: 'w', top: '83%', left: '86%', size: 44, rot: -9, op: 0.6 },
-  { l: 'y', top: '87%', left: '44%', size: 32, rot: 22, op: 0.45 },
-  { l: 'z', top: '28%', left: '91%', size: 38, rot: -14, op: 0.5 },
+  { l: 'a', top: '8%', left: '3%', size: 44, rot: -18, op: 0.5 },
+  { l: 'b', top: '17%', left: '20%', size: 30, rot: 12, op: 0.4 },
+  { l: 'c', top: '7%', left: '68%', size: 40, rot: -8, op: 0.48 },
+  { l: 'd', top: '23%', left: '84%', size: 28, rot: 18, op: 0.38 },
+  { l: 'e', top: '42%', left: '2%', size: 34, rot: -15, op: 0.42 },
+  { l: 'f', top: '58%', left: '88%', size: 42, rot: 8, op: 0.46 },
+  { l: 'g', top: '70%', left: '5%', size: 32, rot: 22, op: 0.34 },
+  { l: 'h', top: '78%', left: '80%', size: 38, rot: -12, op: 0.42 },
+  { l: 'k', top: '86%', left: '10%', size: 42, rot: -8, op: 0.45 },
+  { l: 'p', top: '66%', left: '90%', size: 34, rot: 10, op: 0.35 },
 ] as const
 
-function BackgroundLetters({ opacityScale = 1 }: { opacityScale?: number }) {
+function BackgroundLetters() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden select-none" aria-hidden>
       {BG_LETTERS.map(({ l, top, left, size, rot, op }) => (
-        <div
-          key={l}
-          style={{ position: 'absolute', top, left, opacity: op * opacityScale, transform: `rotate(${rot}deg)` }}
-        >
+        <div key={l} style={{ position: 'absolute', top, left, opacity: op, transform: `rotate(${rot}deg)` }}>
           <Image src={`/icons/letra_${l}.png`} alt="" width={size} height={size} style={{ objectFit: 'contain' }} />
         </div>
       ))}
@@ -65,12 +54,11 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
           onClick={() => scroll('left')}
           className="flex shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
           style={{
-            width: 34,
-            height: 34,
-            backgroundColor: 'rgba(255,255,255,0.10)',
-            color: 'white',
-            fontSize: 18,
+            width: 36,
+            height: 36,
+            backgroundColor: 'rgba(255,255,255,0.1)',
             border: '1px solid rgba(255,255,255,0.14)',
+            color: 'white',
           }}
         >
           {'<'}
@@ -90,7 +78,7 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
                 width: 72,
                 height: 72,
                 border: selected === avatarSrc ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.18)',
-                backgroundColor: 'rgba(0,0,0,0.2)',
+                backgroundColor: 'rgba(0,0,0,0.18)',
                 padding: 3,
               }}
             >
@@ -103,17 +91,88 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
           onClick={() => scroll('right')}
           className="flex shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
           style={{
-            width: 34,
-            height: 34,
-            backgroundColor: 'rgba(255,255,255,0.10)',
-            color: 'white',
-            fontSize: 18,
+            width: 36,
+            height: 36,
+            backgroundColor: 'rgba(255,255,255,0.1)',
             border: '1px solid rgba(255,255,255,0.14)',
+            color: 'white',
           }}
         >
           {'>'}
         </button>
       </div>
+    </div>
+  )
+}
+
+function LoginBadge({
+  user,
+  avatarPath,
+  onLogin,
+  onLogout,
+  onRanking,
+}: {
+  user: User | null
+  avatarPath: string
+  onLogin: () => void
+  onLogout: () => void
+  onRanking: () => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  if (!user) {
+    return (
+      <button
+        onClick={onLogin}
+        className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-transform active:scale-95"
+        style={{ backgroundColor: 'rgba(10,22,40,0.92)', color: '#F8E7BF', border: '2px solid #D69B2B' }}
+      >
+        <Image src="/avatar/avatar_01.png" alt="" width={20} height={20} className="rounded-full object-cover" />
+        LOGIN
+      </button>
+    )
+  }
+
+  const nickname = user.user_metadata?.nickname ?? user.email?.split('@')[0] ?? 'Jogador'
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((isOpen) => !isOpen)}
+        className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-transform active:scale-95"
+        style={{ backgroundColor: 'rgba(10,22,40,0.92)', color: '#F8E7BF', border: '2px solid #D69B2B' }}
+      >
+        <Image src={avatarPath} alt="" width={20} height={20} className="rounded-full object-cover" />
+        {nickname}
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-11 z-50 flex min-w-[150px] flex-col overflow-hidden rounded-2xl shadow-xl"
+          style={{ backgroundColor: '#0F3460', border: '2px solid rgba(214,155,43,0.35)' }}
+        >
+          <button
+            onClick={() => {
+              setOpen(false)
+              onRanking()
+            }}
+            className="px-4 py-3 text-left text-sm font-bold"
+            style={{ color: 'rgba(255,255,255,0.88)' }}
+          >
+            Ranking
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false)
+              onLogout()
+            }}
+            className="border-t px-4 py-3 text-left text-sm font-bold"
+            style={{ color: '#FF6B6B', borderColor: 'rgba(255,255,255,0.08)' }}
+          >
+            Sair
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -143,26 +202,21 @@ function FormScreen({
 }) {
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628' }}>
-      <BackgroundLetters opacityScale={0.08} />
-      <Image
-        src="/trail/fio_bg.png"
-        alt=""
-        width={52}
-        height={180}
-        className="pointer-events-none absolute left-0 top-0 z-0 opacity-90"
-      />
+      <BackgroundLetters />
+      <div className="pointer-events-none absolute left-4 top-0 opacity-90">
+        <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
+      </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col gap-5 overflow-y-auto px-6 pb-32 pt-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-[420px] flex-1 flex-col gap-5 overflow-y-auto px-6 pb-32 pt-8">
         <div className="flex flex-col items-center gap-3">
           <Image src={dogSrc} alt="" width={120} height={120} className="object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)]" />
           <h2 className="text-3xl font-extrabold text-[#F8E7BF]">{title}</h2>
         </div>
-
         {children}
       </div>
 
       <BottomBar
-        left={<BtnSecondary onClick={onBack} label="VOLTAR" iconSrc="/icons/btn_voltar.png" />}
+        left={<BtnSecondary onClick={onBack} label="VOLTAR" iconSrc="/icons/btn_voltar.png" size={60} />}
         center={
           <BtnPrimary
             onClick={onAction}
@@ -172,82 +226,11 @@ function FormScreen({
             color={actionColor}
             disabled={actionDisabled}
             pulse
+            size={74}
           />
         }
       />
     </main>
-  )
-}
-
-function LoginBadge({
-  user,
-  avatarPath,
-  onLogin,
-  onLogout,
-  onRanking,
-}: {
-  user: User | null
-  avatarPath: string
-  onLogin: () => void
-  onLogout: () => void
-  onRanking: () => void
-}) {
-  const [open, setOpen] = useState(false)
-
-  if (!user) {
-    return (
-      <button
-        onClick={onLogin}
-        className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-transform active:scale-95"
-        style={{ backgroundColor: 'rgba(10,22,40,0.92)', color: '#F8E7BF', border: '2px solid #D69B2B' }}
-      >
-        <Image src="/cachorra/1.png" alt="" width={22} height={22} className="rounded-full object-cover" />
-        LOGIN
-      </button>
-    )
-  }
-
-  const nickname = user.user_metadata?.nickname ?? user.email?.split('@')[0] ?? 'Jogador'
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((isOpen) => !isOpen)}
-        className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-transform active:scale-95"
-        style={{ backgroundColor: 'rgba(10,22,40,0.92)', color: '#F8E7BF', border: '2px solid #D69B2B' }}
-      >
-        <Image src={avatarPath} alt="" width={22} height={22} className="rounded-full object-cover" />
-        {nickname}
-      </button>
-
-      {open && (
-        <div
-          className="absolute right-0 top-11 z-50 flex min-w-[150px] flex-col overflow-hidden rounded-2xl shadow-xl"
-          style={{ backgroundColor: '#0F3460', border: '2px solid rgba(214,155,43,0.4)' }}
-        >
-          <button
-            onClick={() => {
-              setOpen(false)
-              onRanking()
-            }}
-            className="px-4 py-3 text-left text-sm font-bold transition-colors"
-            style={{ color: 'rgba(255,255,255,0.85)' }}
-          >
-            Ranking
-          </button>
-          <button
-            onClick={() => {
-              setOpen(false)
-              onLogout()
-            }}
-            className="border-t px-4 py-3 text-left text-sm font-bold"
-            style={{ color: '#FF6B6B', borderColor: 'rgba(255,255,255,0.08)' }}
-          >
-            Sair
-          </button>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -272,9 +255,7 @@ export default function HomePage() {
         const parsed = JSON.parse(saved) as { nickname?: string; avatar?: string }
         if (parsed.nickname) setNickname(parsed.nickname)
         if (parsed.avatar && AVATARS.includes(parsed.avatar)) setAvatar(parsed.avatar)
-      } catch {
-        // ignore invalid localStorage content
-      }
+      } catch {}
     }
 
     const supabase = createClient()
@@ -336,22 +317,16 @@ export default function HomePage() {
     setLoading(true)
     const socket = connectSocket()
     const doJoin = () => {
-      socket.emit(
-        'room:join',
-        code.trim().toUpperCase(),
-        nickname.trim(),
-        avatar,
-        (res: { ok?: boolean; error?: string }) => {
-          setLoading(false)
-          if (!res.ok) {
-            setError(res.error ?? 'Erro ao entrar')
-            return
-          }
-          savePlayer(nickname.trim(), avatar)
-          saveSession(code.trim().toUpperCase(), nickname.trim())
-          router.push(`/room/${code.trim().toUpperCase()}`)
-        },
-      )
+      socket.emit('room:join', code.trim().toUpperCase(), nickname.trim(), avatar, (res: { ok?: boolean; error?: string }) => {
+        setLoading(false)
+        if (!res.ok) {
+          setError(res.error ?? 'Erro ao entrar')
+          return
+        }
+        savePlayer(nickname.trim(), avatar)
+        saveSession(code.trim().toUpperCase(), nickname.trim())
+        router.push(`/room/${code.trim().toUpperCase()}`)
+      })
     }
 
     if (socket.connected) doJoin()
@@ -368,7 +343,7 @@ export default function HomePage() {
     return (
       <FormScreen
         title="Criar Sala"
-        dogSrc="/cachorra/2.png"
+        dogSrc="/imagens/cachorra-home-2.png"
         onBack={back}
         actionIconSrc="/icons/btn_jogar.png"
         actionLabel={loading ? 'CRIANDO' : 'CRIAR SALA'}
@@ -398,7 +373,7 @@ export default function HomePage() {
     return (
       <FormScreen
         title="Entrar na Sala"
-        dogSrc="/cachorra/4.png"
+        dogSrc="/imagens/cachorra-home-4.png"
         onBack={back}
         actionIconSrc="/icons/btn_avançar.png"
         actionLabel={loading ? 'ENTRANDO' : 'ENTRAR'}
@@ -437,18 +412,11 @@ export default function HomePage() {
   }
 
   return (
-    <main
-      className="relative flex min-h-[100dvh] flex-col items-center justify-between overflow-hidden"
-      style={{ backgroundColor: '#0a1628' }}
-    >
-      <BackgroundLetters opacityScale={0.08} />
-      <Image
-        src="/trail/fio_bg.png"
-        alt=""
-        width={52}
-        height={180}
-        className="pointer-events-none absolute left-0 top-0 z-0 opacity-90"
-      />
+    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628' }}>
+      <BackgroundLetters />
+      <div className="pointer-events-none absolute left-4 top-0 opacity-90">
+        <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
+      </div>
 
       <div className="absolute right-4 top-4 z-20">
         <LoginBadge
@@ -460,40 +428,48 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="relative z-10 flex w-full max-w-sm flex-1 flex-col items-center justify-center px-4 pb-28 pt-10">
-        <Image src="/logo.png" alt="STOP ADEDONHA" width={260} height={206} className="animate-slide-up" priority />
+      <section className="relative z-10 mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-center px-5 pb-28 pt-8">
+        <Image
+          src="/imagens/logo-home.png"
+          alt="STOP ADEDONHA"
+          width={340}
+          height={248}
+          className="w-[min(340px,88vw)] h-auto object-contain"
+          priority
+        />
 
         <Image
-          src={`/cachorra/${cachorra}.png`}
+          src={cachorra === 2 ? '/imagens/cachorra-home-2.png' : '/imagens/cachorra-home-1.png'}
           alt="Mascote STOP"
-          width={170}
-          height={170}
-          className="mt-3 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.45)] animate-slide-up"
+          width={210}
+          height={210}
+          className="mt-1 w-[min(210px,52vw)] h-auto object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+          priority
         />
 
         <div
-          className="mt-5 w-full rounded-[28px] px-5 py-5 text-center"
+          className="mt-4 w-full rounded-[28px] px-6 py-5 text-center"
           style={{
-            backgroundColor: 'rgba(8,19,36,0.9)',
+            backgroundColor: 'rgba(8,19,36,0.92)',
             border: '2px solid rgba(255,217,61,0.18)',
             boxShadow: '0 12px 30px rgba(0,0,0,0.24)',
           }}
         >
-          <p className="text-[1.72rem] font-extrabold leading-tight" style={{ color: '#F8E7BF' }}>
+          <p className="text-[2rem] font-extrabold leading-tight" style={{ color: '#F8E7BF' }}>
             O jogo de <span style={{ color: '#F3B11F' }}>STOP</span> mais divertido!
           </p>
-          <p className="mt-2 text-base font-semibold" style={{ color: '#6CC8D6' }}>
+          <p className="mt-2 text-lg font-semibold" style={{ color: '#6CC8D6' }}>
             Sem cadastro. E so jogar
           </p>
         </div>
-      </div>
+      </section>
 
       <BottomBar
         center={
           <>
-            <BtnSecondary onClick={() => router.push('/solo')} iconSrc="/icons/btn_jogar.png" label="INDIVIDUAL" />
-            <BtnPrimary onClick={() => setView('play')} iconSrc="/icons/grupo.png" label="CRIAR SALA" color="#FF6B6B" size={68} pulse />
-            <BtnSecondary onClick={() => setView('friends')} iconSrc="/icons/btn_avançar.png" label="ENTRAR" />
+            <BtnSecondary onClick={() => router.push('/solo')} iconSrc="/icons/btn_jogar.png" label="INDIVIDUAL" size={60} />
+            <BtnPrimary onClick={() => setView('play')} iconSrc="/icons/grupo.png" label="CRIAR SALA" color="#FF6B6B" size={74} pulse />
+            <BtnSecondary onClick={() => setView('friends')} iconSrc="/icons/btn_avançar.png" label="ENTRAR" size={60} />
           </>
         }
       />

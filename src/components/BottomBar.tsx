@@ -17,6 +17,7 @@ interface SecondaryButtonProps {
   iconSrc?: string
   color?: string
   disabled?: boolean
+  size?: number
 }
 
 interface PrimaryButtonProps extends SecondaryButtonProps {
@@ -112,16 +113,18 @@ export default function BottomBar({ left, center, right }: BottomBarProps) {
         borderTop: '1.5px solid rgba(255,255,255,0.08)',
       }}
     >
-      <div className="flex items-center justify-start" style={{ width: 56 }}>
-        {left}
+      <div className="mx-auto flex w-full max-w-[460px] items-center justify-between gap-3">
+        <div className="flex items-center justify-start" style={{ width: 56 }}>
+          {left}
+        </div>
+        <div className="flex flex-1 items-center justify-center gap-3">
+          {center}
+        </div>
+        <div className="flex items-center justify-end" style={{ width: 56 }}>
+          {right}
+        </div>
+        <MuteToggle />
       </div>
-      <div className="flex flex-1 items-center justify-center gap-3">
-        {center}
-      </div>
-      <div className="flex items-center justify-end" style={{ width: 56 }}>
-        {right}
-      </div>
-      <MuteToggle />
     </footer>
   )
 }
@@ -133,26 +136,29 @@ export function BtnSecondary({
   iconSrc,
   color = 'rgba(255,255,255,0.08)',
   disabled,
+  size = 56,
 }: SecondaryButtonProps) {
+  const iconSize = size <= 56 ? 32 : 38
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className="flex flex-col items-center justify-center gap-1 transition-transform active:scale-90 disabled:opacity-20"
       style={{
-        width: 56,
-        height: 56,
+        width: size,
+        height: size,
         borderRadius: 16,
         backgroundColor: color,
         border: '1.5px solid rgba(255,255,255,0.15)',
         flexShrink: 0,
       }}
     >
-      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={32} />
+      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={iconSize} />
       {label && (
         <span
           style={{
-            fontSize: 8,
+            fontSize: size <= 56 ? 8 : 9,
             color: 'rgba(255,255,255,0.6)',
             fontWeight: 700,
             letterSpacing: 0.5,
