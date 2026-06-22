@@ -83,6 +83,13 @@ export default function RoomPage({ params }: PageProps) {
         }, 10000)
       } else if (p === 'review') {
         playTrack('review', 0.3)
+        // Easter egg: 20% de chance durante a correção
+        if (Math.random() < 0.2) {
+          const n = Math.floor(Math.random() * 13) + 1
+          const padded = String(n).padStart(2, '0')
+          setEasterEgg(`/easter/easter_egg_${padded}.png`)
+          setTimeout(() => setEasterEgg(null), 3000)
+        }
       } else if (p === 'stopping') {
         playSfx('stop')
         stopTrack()
@@ -241,8 +248,8 @@ export default function RoomPage({ params }: PageProps) {
         />
       )}
 
-      {/* Easter egg — aparece ~20% das rodadas por 3s antes da letra */}
-      {easterEgg && phase === 'countdown' && (
+      {/* Easter egg — aparece ~20% das rodadas por 3s */}
+      {easterEgg && (phase === 'countdown' || phase === 'review') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center animate-letter-enter" style={{ backgroundColor: '#1A1A2E' }}>
           <Image src={easterEgg} alt="" width={320} height={320} style={{ objectFit: 'contain' }} onError={() => setEasterEgg(null)} />
         </div>

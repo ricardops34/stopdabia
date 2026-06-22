@@ -8,23 +8,40 @@ import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
 import { playTrack } from '@/lib/audio/manager'
 import { connectSocket } from '@/lib/socket/client'
 import { signInWithGoogle, signOut } from '@/lib/supabase/auth'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, supabaseConfigured } from '@/lib/supabase/client'
 
 type View = 'home' | 'play' | 'friends'
 
 const AVATARS = Array.from({ length: 15 }, (_, i) => `/avatar/avatar_${String(i + 1).padStart(2, '0')}.png`)
 
 const BG_LETTERS = [
-  { l: 'a', top: '8%', left: '3%', size: 44, rot: -18, op: 0.5 },
-  { l: 'b', top: '17%', left: '20%', size: 30, rot: 12, op: 0.4 },
-  { l: 'c', top: '7%', left: '68%', size: 40, rot: -8, op: 0.48 },
-  { l: 'd', top: '23%', left: '84%', size: 28, rot: 18, op: 0.38 },
-  { l: 'e', top: '42%', left: '2%', size: 34, rot: -15, op: 0.42 },
-  { l: 'f', top: '58%', left: '88%', size: 42, rot: 8, op: 0.46 },
-  { l: 'g', top: '70%', left: '5%', size: 32, rot: 22, op: 0.34 },
-  { l: 'h', top: '78%', left: '80%', size: 38, rot: -12, op: 0.42 },
-  { l: 'k', top: '86%', left: '10%', size: 42, rot: -8, op: 0.45 },
-  { l: 'p', top: '66%', left: '90%', size: 34, rot: 10, op: 0.35 },
+  // Topo (bem coladas na borda superior)
+  { l: 'a', top: '1%',  left: '-1%', size: 38, rot: -18, op: 0.80 },
+  { l: 'b', top: '3%',  left: '13%', size: 28, rot:  12, op: 0.72 },
+  { l: 'c', top: '0%',  left: '30%', size: 34, rot:  -8, op: 0.76 },
+  { l: 'd', top: '3%',  left: '50%', size: 26, rot:  16, op: 0.70 },
+  { l: 'e', top: '1%',  left: '66%', size: 36, rot: -10, op: 0.78 },
+  { l: 'f', top: '4%',  left: '82%', size: 26, rot:  20, op: 0.72 },
+  // Lado direito (bem coladas na borda direita, fora da área de conteúdo)
+  { l: 'g', top: '15%', left: '91%', size: 30, rot:   8, op: 0.75 },
+  { l: 'h', top: '28%', left: '90%', size: 34, rot: -15, op: 0.78 },
+  { l: 'i', top: '42%', left: '92%', size: 22, rot:  22, op: 0.68 },
+  { l: 'j', top: '56%', left: '90%', size: 32, rot: -10, op: 0.74 },
+  // Lado esquerdo (bem coladas na borda esquerda, fora da área de conteúdo)
+  { l: 'l', top: '15%', left: '-2%', size: 26, rot:  18, op: 0.72 },
+  { l: 'm', top: '28%', left: '-1%', size: 32, rot:  -8, op: 0.76 },
+  { l: 'n', top: '42%', left: '-2%', size: 24, rot:  14, op: 0.68 },
+  { l: 'o', top: '56%', left: '-1%', size: 30, rot: -20, op: 0.74 },
+  // Embaixo — acima da barra (top 74–80%)
+  { l: 'p', top: '74%', left: '-1%', size: 28, rot:  16, op: 0.74 },
+  { l: 'q', top: '77%', left: '14%', size: 24, rot: -14, op: 0.70 },
+  { l: 'r', top: '75%', left: '34%', size: 28, rot:   8, op: 0.72 },
+  { l: 's', top: '77%', left: '54%', size: 24, rot: -18, op: 0.68 },
+  { l: 't', top: '75%', left: '73%', size: 28, rot:  12, op: 0.74 },
+  { l: 'u', top: '74%', left: '90%', size: 26, rot: -10, op: 0.70 },
+  // Extras nos cantos
+  { l: 'v', top: '69%', left: '91%', size: 24, rot:  -6, op: 0.68 },
+  { l: 'z', top: '69%', left: '-1%', size: 26, rot:  20, op: 0.70 },
 ] as const
 
 function BackgroundLetters() {
@@ -124,11 +141,9 @@ function LoginBadge({
     return (
       <button
         onClick={onLogin}
-        className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-transform active:scale-95"
-        style={{ backgroundColor: 'rgba(10,22,40,0.92)', color: '#F8E7BF', border: '2px solid #D69B2B' }}
+        className="transition-transform active:scale-95"
       >
-        <Image src="/avatar/avatar_01.png" alt="" width={20} height={20} className="rounded-full object-cover" />
-        LOGIN
+        <Image src="/icons/btn_login.png" alt="LOGIN" width={110} height={40} style={{ objectFit: 'contain' }} />
       </button>
     )
   }
@@ -201,7 +216,7 @@ function FormScreen({
   actionLoading: boolean
 }) {
   return (
-    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628' }}>
+    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
       <BackgroundLetters />
       <div className="pointer-events-none absolute left-4 top-0 opacity-90">
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
@@ -216,18 +231,20 @@ function FormScreen({
       </div>
 
       <BottomBar
-        left={<BtnSecondary onClick={onBack} label="VOLTAR" iconSrc="/icons/btn_voltar.png" size={60} />}
         center={
-          <BtnPrimary
-            onClick={onAction}
-            icon={actionLoading ? '...' : undefined}
-            iconSrc={actionLoading ? undefined : actionIconSrc}
-            label={actionLoading ? 'AGUARDE' : actionLabel}
-            color={actionColor}
-            disabled={actionDisabled}
-            pulse
-            size={74}
-          />
+          <>
+            <BtnSecondary onClick={onBack} iconSrc="/icons/btn_voltar.png" label="VOLTAR" size={64} />
+            <BtnPrimary
+              onClick={onAction}
+              icon={actionLoading ? '...' : undefined}
+              iconSrc={actionLoading ? undefined : actionIconSrc}
+              label={actionLoading ? 'AGUARDE' : actionLabel}
+              color={actionColor}
+              disabled={actionDisabled}
+              pulse
+              size={64}
+            />
+          </>
         }
       />
     </main>
@@ -246,7 +263,7 @@ export default function HomePage() {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    setCachorra(Math.floor(Math.random() * 4) + 1)
+    setCachorra(Math.floor(Math.random() * 5) + 1)
     playTrack('home', 0.3)
 
     const saved = localStorage.getItem('stop_player')
@@ -257,6 +274,8 @@ export default function HomePage() {
         if (parsed.avatar && AVATARS.includes(parsed.avatar)) setAvatar(parsed.avatar)
       } catch {}
     }
+
+    if (!supabaseConfigured) return
 
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
@@ -412,7 +431,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628' }}>
+    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
       <BackgroundLetters />
       <div className="pointer-events-none absolute left-4 top-0 opacity-90">
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
@@ -428,48 +447,61 @@ export default function HomePage() {
         />
       </div>
 
-      <section className="relative z-10 mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-center px-5 pb-28 pt-8">
+      <section className="relative z-10 mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-evenly px-3 pb-24 pt-2">
+        {/* Logo */}
         <Image
           src="/imagens/logo-home.png"
           alt="STOP ADEDONHA"
-          width={340}
-          height={248}
-          className="w-[min(340px,88vw)] h-auto object-contain"
+          width={390}
+          height={280}
+          className="w-[min(390px,96vw)] object-contain animate-pulse-logo"
+          style={{ maxHeight: '32vh' }}
           priority
         />
 
+        {/* Mascote */}
         <Image
-          src={cachorra === 2 ? '/imagens/cachorra-home-2.png' : '/imagens/cachorra-home-1.png'}
+          src={`/cachorra/${cachorra}.png`}
           alt="Mascote STOP"
-          width={210}
-          height={210}
-          className="mt-1 w-[min(210px,52vw)] h-auto object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+          width={300}
+          height={300}
+          className="object-contain drop-shadow-[0_24px_52px_rgba(0,0,0,0.60)] animate-float-dog"
+          style={{ maxHeight: '36vh', width: 'auto' }}
           priority
         />
 
+        {/* Tagline */}
         <div
-          className="mt-4 w-full rounded-[28px] px-6 py-5 text-center"
+          className="w-full rounded-[24px] px-4 py-3 text-center"
           style={{
-            backgroundColor: 'rgba(8,19,36,0.92)',
-            border: '2px solid rgba(255,217,61,0.18)',
-            boxShadow: '0 12px 30px rgba(0,0,0,0.24)',
+            backgroundColor: 'rgba(8,19,36,0.93)',
+            border: '2px solid rgba(255,217,61,0.22)',
+            boxShadow: '0 10px 28px rgba(0,0,0,0.32)',
           }}
         >
-          <p className="text-[2rem] font-extrabold leading-tight" style={{ color: '#F8E7BF' }}>
-            O jogo de <span style={{ color: '#F3B11F' }}>STOP</span> mais divertido!
-          </p>
-          <p className="mt-2 text-lg font-semibold" style={{ color: '#6CC8D6' }}>
-            Sem cadastro. E so jogar
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <span style={{ fontSize: 18 }}>🌸</span>
+            <p className="text-[1.5rem] font-extrabold leading-tight" style={{ color: '#F8E7BF' }}>
+              O jogo de <span style={{ color: '#F3B11F' }}>STOP</span> mais divertido!
+            </p>
+            <span style={{ fontSize: 18 }}>🌸</span>
+          </div>
         </div>
       </section>
 
       <BottomBar
+        spread
         center={
           <>
-            <BtnSecondary onClick={() => router.push('/solo')} iconSrc="/icons/btn_jogar.png" label="INDIVIDUAL" size={60} />
-            <BtnPrimary onClick={() => setView('play')} iconSrc="/icons/grupo.png" label="CRIAR SALA" color="#FF6B6B" size={74} pulse />
-            <BtnSecondary onClick={() => setView('friends')} iconSrc="/icons/btn_avançar.png" label="ENTRAR" size={60} />
+            <button onClick={() => router.push('/solo')} className="transition-transform active:scale-90">
+              <Image src="/icons/btn_individual.png" alt="Individual" width={64} height={64} style={{ objectFit: 'contain' }} />
+            </button>
+            <button onClick={() => setView('play')} className="transition-transform active:scale-90">
+              <Image src="/icons/btn_criar_sala.png" alt="Criar Sala" width={64} height={64} style={{ objectFit: 'contain' }} />
+            </button>
+            <button onClick={() => setView('friends')} className="transition-transform active:scale-90">
+              <Image src="/icons/btn_entrar.png" alt="Entrar" width={64} height={64} style={{ objectFit: 'contain' }} />
+            </button>
           </>
         }
       />

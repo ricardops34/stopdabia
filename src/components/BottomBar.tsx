@@ -8,6 +8,7 @@ interface BottomBarProps {
   left?: ReactNode
   center?: ReactNode
   right?: ReactNode
+  spread?: boolean
 }
 
 interface SecondaryButtonProps {
@@ -47,26 +48,16 @@ function MuteToggle() {
     <button
       onClick={toggle}
       aria-label={muted ? 'Ativar som' : 'Silenciar'}
-      className="flex flex-col items-center justify-center gap-1 transition-transform active:scale-90"
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        border: '1.5px solid rgba(255,255,255,0.12)',
-        flexShrink: 0,
-      }}
+      className="transition-transform active:scale-90"
+      style={{ flexShrink: 0 }}
     >
       <Image
         src={muted ? '/icons/btn_som_off.png' : '/icons/btn_som_on.png'}
         alt={muted ? 'Som desligado' : 'Som ligado'}
-        width={32}
-        height={32}
+        width={64}
+        height={64}
         style={{ objectFit: 'contain' }}
       />
-      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 0.5 }}>
-        SOM
-      </span>
     </button>
   )
 }
@@ -99,31 +90,39 @@ function ButtonIcon({
   return <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
 }
 
-export default function BottomBar({ left, center, right }: BottomBarProps) {
-  return (
-    <footer
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-3 px-3"
-      style={{
-        height: 76,
-        backgroundColor: '#0a1628',
-        backgroundImage: 'url(/ui/barra_fundo.png)',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'repeat-x',
-        backgroundSize: 'cover',
-        borderTop: '1.5px solid rgba(255,255,255,0.08)',
-      }}
-    >
-      <div className="mx-auto flex w-full max-w-[460px] items-center justify-between gap-3">
-        <div className="flex items-center justify-start" style={{ width: 56 }}>
-          {left}
+export default function BottomBar({ left, center, right, spread }: BottomBarProps) {
+  const footerStyle: React.CSSProperties = {
+    height: 76,
+    backgroundColor: '#0a1628',
+    backgroundImage: 'url(/ui/barra_fundo.png)',
+    backgroundPosition: 'center top',
+    backgroundRepeat: 'repeat-x',
+    backgroundSize: 'cover',
+    borderTop: '1.5px solid rgba(255,255,255,0.08)',
+  }
+
+  if (spread) {
+    return (
+      <footer className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
+        <div className="mx-auto flex w-full h-full max-w-[460px] items-center justify-center gap-4 px-3">
+          {center}
+          <MuteToggle />
         </div>
-        <div className="flex flex-1 items-center justify-center gap-3">
+      </footer>
+    )
+  }
+
+  return (
+    <footer className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
+      <div className="mx-auto flex w-full h-full max-w-[460px] items-center justify-center gap-3 px-2">
+        {left && <div className="flex items-center" style={{ flexShrink: 0 }}>{left}</div>}
+        <div className="flex items-center justify-center gap-3">
           {center}
         </div>
-        <div className="flex items-center justify-end" style={{ width: 56 }}>
+        <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
           {right}
+          <MuteToggle />
         </div>
-        <MuteToggle />
       </div>
     </footer>
   )

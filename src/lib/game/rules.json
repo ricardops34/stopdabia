@@ -9,9 +9,9 @@
       "points_duplicate": 10
     },
     "matando_aula": {
-      "label": "Matando Aula",
-      "description": "Começa com a letra correta MAS a palavra é inventada, não existe no dicionário, ou não se encaixa legitimamente na categoria. Ex: letra B, categoria Animal → 'Bicharedo' (não é animal real).",
-      "image": "/aviso/matando_aula.png",
+      "label": "Sem Relação",
+      "description": "Começa com a letra correta MAS não tem relação com a categoria. Ex: letra B, categoria Animal → 'Bola' (objeto, não animal).",
+      "image": "/aviso/da_zero.png",
       "valid": false,
       "points": 0
     },
@@ -33,6 +33,13 @@
       "label": "Sem Resposta",
       "description": "O jogador não digitou nada ou deixou em branco",
       "image": "/aviso/da_zero.png",
+      "valid": false,
+      "points": 0
+    },
+    "erro_ortografia": {
+      "label": "Erro de Ortografia",
+      "description": "A palavra se encaixa na categoria e começa com a letra correta, mas está escrita de forma errada (erro de grafia, acento incorreto ou letra trocada)",
+      "image": "/aviso/matando_aula.png",
       "valid": false,
       "points": 0
     }
@@ -67,9 +74,10 @@
     },
     "objeto": {
       "label": "Objeto",
-      "description": "Objeto concreto, coisa física que pode ser tocada. Não pode ser pessoa, lugar ou abstração.",
-      "examples_valid": ["Armário", "Borracha", "Cadeira", "Dado"],
-      "examples_invalid": ["Amor (abstrato)", "Brasil (lugar)"]
+      "description": "Objeto concreto com forma definida que pode ser tocado e segurado — utensílio, móvel, ferramenta, brinquedo, etc. Líquidos (água, suco), gases (ar), substâncias (areia, terra, neve) e alimentos NÃO valem — use a categoria Comida para alimentos. Não pode ser pessoa, lugar, animal ou abstração.",
+      "examples_valid": ["Armário", "Borracha", "Cadeira", "Dado", "Escada", "Faca", "Garrafa"],
+      "examples_invalid": ["Amor (abstrato)", "Brasil (lugar)", "Água (líquido)", "Areia (substância)", "Abacaxi (alimento — vai em Fruta/Comida)"],
+      "edge_cases": "Água, suco, areia, terra e neve NÃO valem. Garrafa vale (objeto), mas água dentro dela não vale. Alimentos e bebidas pertencem à categoria Comida."
     },
     "profissao": {
       "label": "Profissão",
@@ -91,9 +99,9 @@
     },
     "comida": {
       "label": "Comida",
-      "description": "Prato, alimento ou bebida que se come/bebe. Ingredientes isolados valem se forem reconhecíveis como comida.",
-      "examples_valid": ["Arroz", "Brigadeiro", "Coxinha", "Doce de leite"],
-      "examples_invalid": ["Colher (objeto para comer, não comida)"]
+      "description": "Prato, alimento, bebida ou ingrediente comestível. Água e outros líquidos bebíveis também valem aqui. Não aceite utensílios ou objetos relacionados à alimentação.",
+      "examples_valid": ["Arroz", "Brigadeiro", "Coxinha", "Doce de leite", "Água", "Achocolatado"],
+      "examples_invalid": ["Colher (utensílio)", "Fogão (objeto)", "Cozinha (lugar)"]
     },
     "verbo": {
       "label": "Verbo",

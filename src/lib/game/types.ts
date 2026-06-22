@@ -31,7 +31,7 @@ export interface RoomSettings {
   categories: Category[]
 }
 
-export type AnswerOutcome = 'acerto' | 'matando_aula' | 'letra_errada' | 'palavra_nao_existe' | 'vazio'
+export type AnswerOutcome = 'acerto' | 'matando_aula' | 'letra_errada' | 'palavra_nao_existe' | 'vazio' | 'erro_ortografia'
 
 export interface PlayerAnswer {
   playerId: string

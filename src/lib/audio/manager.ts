@@ -6,16 +6,16 @@ type Track = 'home' | 'game' | 'review'
 type Sfx = 'stop' | 'acerto' | 'erro' | 'countdown'
 
 const TRACKS: Record<Track, string> = {
-  home:   '/audio/home.mp3',
-  game:   '/audio/game.mp3',
-  review: '/audio/review.mp3',
+  home:   '/audio/home.wav',
+  game:   '/audio/game.wav',
+  review: '/audio/review.wav',
 }
 
 const SFX_PATHS: Record<Sfx, string> = {
-  stop:      '/audio/stop.mp3',
-  acerto:    '/audio/acerto.mp3',
-  erro:      '/audio/erro.mp3',
-  countdown: '/audio/countdown.mp3',
+  stop:      '/audio/stop.wav',
+  acerto:    '/audio/acerto.wav',
+  erro:      '/audio/erro.wav',
+  countdown: '/audio/countdown.wav',
 }
 
 let currentTrack: Track | null = null

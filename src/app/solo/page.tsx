@@ -31,152 +31,139 @@ const TIME_OPTIONS = [30, 60, 90] as const
 type LetterProgress = { score: number; maxScore: number }
 type SoloProgress = Record<string, LetterProgress>
 
+const ALL_LETTERS = ['A','B','C','D','E','F','G','H','I','J','L','M','N','O','P','Q','R','S','T','U','V','Z'] as const
+
 const TRAIL_SECTIONS = [
   {
     id: 'classica',
     title: 'CLÁSSICO',
     subtitle: 'Nome · Animal · Cor · Fruta · Objeto · Profissão',
     color: '#FF6B6B',
-    dark: '#C0392B',
+    bannerImg: '/trail/secao_vermelho.png',
     categoryIds: ['nome', 'animal', 'cor', 'fruta', 'objeto', 'profissao'],
-    letters: ['A','B','C','D','E','F','G','H','I','J'],
+    letters: ALL_LETTERS,
   },
   {
     id: 'escolar',
     title: 'ESCOLAR',
     subtitle: 'Cidade · País · Comida · Verbo · Personagem · Esporte',
     color: '#4ECDC4',
-    dark: '#16A085',
+    bannerImg: '/trail/secao_azul.png',
     categoryIds: ['cidade', 'pais', 'comida', 'verbo', 'personagem', 'esporte'],
-    letters: ['K','L','M','N','O','P','Q','R','S'],
+    letters: ALL_LETTERS,
   },
   {
     id: 'divertida',
     title: 'DIVERTIDO',
     subtitle: 'Filme · Série · Marca · Música',
     color: '#9B59B6',
-    dark: '#6C3483',
+    bannerImg: '/trail/secao_roxo.png',
     categoryIds: ['filme', 'serie', 'marca', 'musica', 'nome', 'animal'],
-    letters: ['T','U','V','W','X','Y','Z'],
+    letters: ALL_LETTERS,
   },
 ] as const
-
-// offset em px a partir do centro para o zigzag (range compacto)
-const ZIGZAG_OFFSETS = [-56, -16, 16, 56] as const
 
 function loadProgress(): SoloProgress {
   if (typeof window === 'undefined') return {}
   try { return JSON.parse(localStorage.getItem('stop_solo_progress') ?? '{}') } catch { return {} }
 }
 
-function saveProgress(letter: string, score: number, maxScore: number) {
+function saveProgress(key: string, score: number, maxScore: number) {
   const p = loadProgress()
-  p[letter] = { score, maxScore }
+  p[key] = { score, maxScore }
   localStorage.setItem('stop_solo_progress', JSON.stringify(p))
 }
 
 interface TrailScreenProps {
-  onSelectLetter: (letter: string, cats: string[], time: number) => void
+  onSelectLetter: (letter: string, cats: string[], time: number, progressKey: string) => void
   onBack: () => void
 }
 
 function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
   const [progress, setProgress] = useState<SoloProgress>({})
-  const [picking, setPicking] = useState<{ letter: string; cats: string[] } | null>(null)
+  const [picking, setPicking] = useState<{ letter: string; cats: string[]; progressKey: string } | null>(null)
   const [time, setTime] = useState<30 | 60 | 90>(60)
 
   useEffect(() => { setProgress(loadProgress()) }, [])
 
-  const allLetters = TRAIL_SECTIONS.flatMap(s => [...s.letters])
-  const currentLetter = allLetters.find(l => !progress[l]) ?? null
-
-  let globalIdx = 0
+  const currentKey = TRAIL_SECTIONS.flatMap(s => s.letters.map(l => `${s.id}_${l}`)).find(k => !progress[k]) ?? null
 
   return (
-    <main className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#0a1628' }}>
-      {/* Coluna central: max 440px para mobile-first mesmo em desktop */}
-      <div className="flex-1 flex flex-col overflow-hidden w-full mx-auto" style={{ maxWidth: 440 }}>
+    <main style={{ position: 'relative', height: '100dvh', overflow: 'hidden', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
 
-        {/* Header */}
-        <div className="shrink-0 flex items-center justify-center px-4 pt-4 pb-2">
+        {/* Header fixo no topo */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px 8px', zIndex: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="STOP ADEDONHA" width={140} style={{ height: 'auto', display: 'block' }} />
         </div>
 
-        {/* Trilha scrollável */}
-        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', paddingBottom: 96 }}>
+        {/* Trilha scrollável — top=130px (header), bottom=76px (barra) */}
+        <div style={{ position: 'absolute', top: 130, left: 0, right: 0, bottom: 76, overflowY: 'auto' }}>
+        <div className="px-3" style={{ maxWidth: 440, margin: '0 auto', paddingBottom: 16 }}>
           {TRAIL_SECTIONS.map((section) => (
-            <div key={section.id}>
+            <div key={section.id} className="mb-6">
 
               {/* Banner da seção */}
-              <div className="mx-3 mt-4 mb-2 relative overflow-hidden rounded-2xl" style={{ height: 68 }}>
+              <div className="mt-4 mb-3 relative overflow-hidden rounded-2xl" style={{ height: 72 }}>
                 <Image
-                  src={`/trail/secao_${section.id}.png`}
+                  src={section.bannerImg}
                   alt={section.title}
                   fill
-                  style={{ objectFit: 'cover', objectPosition: 'right center' }}
+                  style={{ objectFit: 'fill' }}
                 />
-                <div
-                  className="absolute inset-0"
-                  style={{ background: `linear-gradient(90deg, ${section.color}ff 40%, ${section.color}cc 60%, transparent 85%)` }}
-                />
-                <div className="absolute inset-0 flex flex-col justify-center px-4">
-                  <p className="text-xs font-black tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.9)' }}>{section.title}</p>
-                  <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>{section.subtitle}</p>
+                <div className="absolute inset-0 flex flex-col justify-center px-5">
+                  <p className="text-sm font-black tracking-widest uppercase" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{section.title}</p>
+                  <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.8)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>{section.subtitle}</p>
                 </div>
               </div>
 
-              {/* Nós em zigzag */}
-              <div className="flex flex-col items-center" style={{ paddingTop: 8, paddingBottom: 4 }}>
-                {section.letters.map((l, li) => {
-                  const offset = ZIGZAG_OFFSETS[globalIdx % 4]
-                  globalIdx++
-                  const done = !!progress[l]
-                  const isCurrent = l === currentLetter
-                  const isLastInSection = li === section.letters.length - 1
+              {/* Letras — flex wrap centralizado */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {section.letters.map((l) => {
+                  const key = `${section.id}_${l}`
+                  const done = !!progress[key]
+                  const isCurrent = key === currentKey
+                  const locked = false
 
-                  let nodeImg = '/trail/node_locked.png'
-                  if (done) nodeImg = '/trail/node_done.png'
-                  else if (isCurrent) nodeImg = '/trail/node_glow.png'
+                  const nodeImg = done ? '/trail/node_done.png' : '/trail/node_locked.png'
 
                   return (
-                    <div key={l} className="flex flex-col items-center" style={{ transform: `translateX(${offset}px)` }}>
-                      {/* Nó */}
-                      <button
-                        onClick={() => setPicking({ letter: l, cats: [...section.categoryIds] })}
-                        className="relative flex items-center justify-center active:scale-90 transition-transform"
-                        style={{ width: 72, height: 72 }}
-                      >
-                        <Image src={nodeImg} alt="" fill style={{ objectFit: 'contain' }} />
+                    <button
+                      key={l}
+                      onClick={() => !locked && setPicking({ letter: l, cats: [...section.categoryIds], progressKey: key })}
+                      className="relative flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 active:scale-90 transition-transform"
+                      style={{
+                        width: 'calc(25% - 6px)',
+                        backgroundColor: locked ? 'rgba(255,255,255,0.04)' : isCurrent ? 'rgba(255,217,61,0.12)' : 'rgba(149,224,108,0.10)',
+                        border: isCurrent ? '2px solid #FFD93D' : done ? '2px solid #95E06C' : '2px solid rgba(255,255,255,0.08)',
+                        opacity: locked ? 0.5 : 1,
+                        boxShadow: isCurrent ? '0 0 16px rgba(255,217,61,0.5)' : undefined,
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: 52, height: 52 }}>
+                        {(done || locked) && <Image src={nodeImg} alt="" fill style={{ objectFit: 'contain' }} />}
                         <Image
                           src={`/icons/letra_${l.toLowerCase()}.png`}
                           alt={l}
-                          width={40}
-                          height={40}
+                          width={36}
+                          height={36}
                           style={{
                             objectFit: 'contain',
-                            position: 'relative',
+                            position: 'absolute',
+                            top: '50%', left: '50%',
+                            transform: 'translate(-50%,-50%)',
                             zIndex: 1,
-                            filter: (!done && !isCurrent) ? 'grayscale(1) opacity(0.45)' : undefined,
+                            filter: locked ? 'grayscale(1) opacity(0.5)' : undefined,
                           }}
                         />
-                        {done && (
-                          <div
-                            className="absolute -bottom-1 -right-1 rounded-full flex items-center justify-center"
-                            style={{ width: 20, height: 20, backgroundColor: '#FFD93D', fontSize: 10, fontWeight: 900, zIndex: 2 }}
-                          >
-                            {progress[l].score}
-                          </div>
-                        )}
-                      </button>
-
-                      {/* Fio: container com tamanho fixo + fill para não explodir */}
-                      {!isLastInSection && (
-                        <div style={{ width: 16, height: 18, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-                          <Image src="/trail/fio.png" alt="" fill style={{ objectFit: 'cover' }} />
-                        </div>
+                      </div>
+                      {done && (
+                        <span style={{ fontSize: 10, fontWeight: 900, color: '#FFD93D' }}>{progress[l].score}pts</span>
                       )}
-                    </div>
+                      {isCurrent && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#FFD93D' }}>JOGAR</span>
+                      )}
+                    </button>
                   )
                 })}
               </div>
@@ -189,8 +176,8 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
             <Image src="/cachorra/3.png" alt="" width={120} height={120} style={{ objectFit: 'contain' }} />
           </div>
 
-        </div>{/* fim scroll */}
-      </div>{/* fim max-width */}
+        </div>{/* fim inner */}
+        </div>{/* fim scroll absoluto */}
 
       {/* Modal de seleção de tempo */}
       {picking && (
@@ -226,7 +213,7 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
               ))}
             </div>
             <button
-              onClick={() => { onSelectLetter(picking.letter, picking.cats, time); setPicking(null) }}
+              onClick={() => { onSelectLetter(picking.letter, picking.cats, time, picking.progressKey); setPicking(null) }}
               className="w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 transition-transform animate-pulse-stop"
               style={{ backgroundColor: '#FF6B6B', border: '2px solid #FFD93D' }}
             >
@@ -236,7 +223,11 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
         </div>
       )}
 
-      <BottomBar left={<BtnSecondary onClick={onBack} icon="🏠" label="INÍCIO" />} />
+      <BottomBar center={
+        <button onClick={onBack} className="transition-transform active:scale-90">
+          <Image src="/icons/btn_inicio.png" alt="Início" width={64} height={64} style={{ objectFit: 'contain' }} />
+        </button>
+      } />
     </main>
   )
 }
@@ -313,14 +304,15 @@ function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext }: Rev
       </div>
 
       <BottomBar
-        left={onPrev ? <BtnSecondary onClick={onPrev} icon="←" label="ANTERIOR" /> : undefined}
+        left={onPrev ? <BtnSecondary onClick={onPrev} iconSrc="/icons/btn_anterior.png" label="ANTERIOR" size={64} /> : undefined}
         right={
           <BtnPrimary
             onClick={onNext}
-            icon={isLast ? '📋' : '→'}
+            iconSrc={isLast ? '/icons/btn_resumo.png' : '/icons/btn_proxima.png'}
             label={isLast ? 'RESUMO' : 'PRÓXIMA'}
             color={isLast ? '#FF6B6B' : '#4ECDC4'}
             pulse={isLast}
+            size={64}
           />
         }
       />
@@ -350,6 +342,7 @@ export default function SoloPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const demoraRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const letterRef = useRef('')
+  const progressKeyRef = useRef('')
 
   function clearAllTimers() {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -358,7 +351,8 @@ export default function SoloPage() {
 
   // ─── Início do jogo ──────────────────────────────────────────────────────
 
-  function startGameWithLetter(l: string, catIds: string[], time: number) {
+  function startGameWithLetter(l: string, catIds: string[], time: number, progressKey?: string) {
+    if (progressKey) progressKeyRef.current = progressKey
     const cats = ALL_CATEGORIES.filter((c) => catIds.includes(c.id))
     setSelectedCats(cats)
     setSelectedTime(time as 30 | 60 | 90)
@@ -490,7 +484,7 @@ export default function SoloPage() {
 
       const totalScore = allResults.reduce((s, r) => s + r.points, 0)
       const maxScore = allResults.length * 15
-      saveProgress(letterRef.current, totalScore, maxScore)
+      saveProgress(progressKeyRef.current || letterRef.current, totalScore, maxScore)
 
       setResults(allResults)
       setValidating(false)
@@ -652,14 +646,10 @@ export default function SoloPage() {
 
   if (phase === 'letter') {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-screen gap-6" style={{ backgroundColor: '#1A1A2E' }}>
-        <p className="text-lg font-bold opacity-60 uppercase tracking-widest">A letra é</p>
-        <div
-          className="rounded-full flex items-center justify-center animate-letter-enter"
-          style={{ width: 280, height: 280, backgroundColor: '#FFD93D', boxShadow: '0 0 60px rgba(255,217,61,0.5)' }}
-        >
-          <Image src={`/letras_sorteio/${letter}.png`} alt={letter} width={220} height={220} priority />
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6"
+        style={{ backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
+        <p className="text-2xl font-black uppercase tracking-[0.3em]" style={{ color: '#F8E7BF' }}>A letra é</p>
+        <Image src={`/letras_sorteio/${letter}.png`} alt={letter} width={300} height={300} priority className="animate-letter-enter" style={{ objectFit: 'contain' }} />
       </div>
     )
   }
@@ -746,20 +736,20 @@ export default function SoloPage() {
         </div>
 
         <BottomBar
-          left={<BtnSecondary onClick={() => setCatIdx((i) => i - 1)} icon="←" label="ANTERIOR" disabled={isFirst} />}
+          left={<BtnSecondary onClick={() => setCatIdx((i) => i - 1)} iconSrc="/icons/btn_anterior.png" label="ANTERIOR" disabled={isFirst} size={64} />}
           center={
             <>
               <BtnSecondary
                 onClick={() => useHint(catIdx)}
-                icon={hintLoading ? '⏳' : hintUsed ? '✅' : '💡'}
+                iconSrc={hintUsed ? '/icons/btn_dica_usada.png' : '/icons/btn_dica.png'}
                 label={hintUsed ? 'USADA' : 'DICA'}
-                color={hintUsed ? 'rgba(255,255,255,0.05)' : 'rgba(255,217,61,0.15)'}
                 disabled={hintUsed || hintLoading}
+                size={64}
               />
-              <BtnPrimary onClick={handleStop} label="STOP!" pulse />
+              <BtnPrimary onClick={handleStop} iconSrc="/icons/btn_stop.png" label="STOP!" pulse size={64} />
             </>
           }
-          right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} icon="→" label="PRÓXIMA" disabled={isLast} />}
+          right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} iconSrc="/icons/btn_proxima.png" label="PRÓXIMA" disabled={isLast} size={64} />}
         />
       </div>
     )
@@ -858,8 +848,8 @@ export default function SoloPage() {
         </div>
 
         <BottomBar
-          right={
-            <BtnPrimary onClick={() => setPhase('result')} label="RESULTADO" icon="🏆" color="#4ECDC4" pulse />
+          center={
+            <BtnPrimary onClick={() => setPhase('result')} iconSrc="/icons/btn_resumo.png" label="RESULTADO" color="#4ECDC4" pulse size={64} />
           }
         />
       </div>
@@ -889,8 +879,8 @@ export default function SoloPage() {
         <BottomBar
           center={
             <>
-              <BtnSecondary onClick={() => setPhase('trail')} label="TRILHA" icon="🗺️" />
-              <BtnPrimary onClick={() => setPhase('trail')} label="DE NOVO" icon="🔄" pulse />
+              <BtnSecondary onClick={() => setPhase('trail')} iconSrc="/icons/btn_inicio.png" label="TRILHA" size={64} />
+              <BtnPrimary onClick={() => setPhase('trail')} iconSrc="/icons/btn_reiniciar.png" label="DE NOVO" pulse size={64} />
             </>
           }
         />

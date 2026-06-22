@@ -137,7 +137,8 @@ ${edge ? `**Atenção:** ${edge}` : ''}
 ${fewShot}
 
 ### Classificações possíveis
-- **"acerto"** — palavra real em português, encaixa perfeitamente na categoria. Aceite variações ortográficas menores (ex: "cocô" e "cocô" são iguais). Nomes compostos valem se a PRIMEIRA palavra começa com "${letter}".
+- **"acerto"** — palavra real em português, encaixa perfeitamente na categoria. Aceite variações ortográficas menores (ex: "cocô" e "coco" são iguais). Nomes compostos valem se a PRIMEIRA palavra começa com "${letter}".
+- **"erro_ortografia"** — a palavra encaixa na categoria e começa com "${letter}", mas tem erro de grafia claro (letra trocada, acento errado, etc.). Ex: letra A, Animal → "Arara" correto; "Ararra" ou "Aara" → erro_ortografia.
 - **"matando_aula"** — começa com "${letter}", mas a palavra não existe no dicionário, é claramente inventada, ou não se encaixa na categoria. Ex: nome de pessoa em categoria de animal, fruta inventada, etc.
 - **"palavra_nao_existe"** — sequência sem sentido, letras aleatórias, ou incompreensível. Mais grave que matando_aula.
 
@@ -168,7 +169,7 @@ ${needsAI.map((a, i) => `${i + 1}. playerId="${a.playerId}" | "${a.answer}"`).jo
     const parsed = JSON.parse(jsonMatch[0]) as { results: { playerId: string; outcome: AnswerOutcome }[] }
     const aiMap = new Map(parsed.results.map((r) => [r.playerId, r.outcome]))
 
-    const validAiOutcomes: AnswerOutcome[] = ['acerto', 'matando_aula', 'palavra_nao_existe']
+    const validAiOutcomes: AnswerOutcome[] = ['acerto', 'matando_aula', 'palavra_nao_existe', 'erro_ortografia']
 
     const results: ValidationResult[] = answers.map((a) => {
       // Hard check sempre tem prioridade
