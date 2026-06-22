@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, use } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { connectSocket } from '@/lib/socket/client'
@@ -35,6 +36,8 @@ export default function RoomPage({ params }: PageProps) {
   const [myId, setMyId] = useState('')
   const [hintUsed, setHintUsed] = useState(false)
   const [hintLoading, setHintLoading] = useState(false)
+  const [hintsMap, setHintsMap] = useState<Record<string, { word: string; explanation: string }>>({})
+  const hintsMapRef = useRef<Record<string, { word: string; explanation: string }>>({})
 
   const answersRef = useRef<Record<string, string>>({})
   const sentAnswers = useRef(false)
@@ -83,16 +86,21 @@ export default function RoomPage({ params }: PageProps) {
         }, 10000)
       } else if (p === 'review') {
         playTrack('review', 0.3)
-        // Easter egg: 20% de chance durante a correção
-        if (Math.random() < 0.2) {
-          const n = Math.floor(Math.random() * 13) + 1
-          const padded = String(n).padStart(2, '0')
-          setEasterEgg(`/easter/easter_egg_${padded}.png`)
-          setTimeout(() => setEasterEgg(null), 3000)
-        }
+        // Easter egg: 20% de chance — determinístico pela letra para todos verem igual
+        setEasterEgg((prev) => {
+          const letterCode = letter.charCodeAt(0)
+          if (letterCode % 5 === 0) {
+            const n = (letterCode % 13) + 1
+            const padded = String(n).padStart(2, '0')
+            setTimeout(() => setEasterEgg(null), 3000)
+            return `/easter/easter_egg_${padded}.png`
+          }
+          return prev
+        })
       } else if (p === 'stopping') {
         playSfx('stop')
         stopTrack()
+        setResults([])
       } else if (p === 'finished') {
         stopTrack()
       } else {
@@ -175,6 +183,8 @@ export default function RoomPage({ params }: PageProps) {
     }
   }, [])
 
+  // hintsMapRef é atualizado diretamente nos setters — não precisa de effect separado
+
   useEffect(() => {
     if (phase === 'playing') {
       sentAnswers.current = false
@@ -182,10 +192,12 @@ export default function RoomPage({ params }: PageProps) {
       setAnswers({})
       setHintUsed(false)
       setHintLoading(false)
+      setHintsMap({})
+      hintsMapRef.current = {}
     } else if (phase === 'stopping' && !sentAnswers.current) {
       sentAnswers.current = true
       const socket = connectSocket()
-      socket.emit('game:answers', answersRef.current)
+      socket.emit('game:answers', answersRef.current, hintsMapRef.current)
     }
   }, [phase])
 
@@ -236,7 +248,7 @@ export default function RoomPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col" style={{ overflow: 'hidden' }}>
       {phase === 'lobby' && (
         <LobbyView
           room={room}
@@ -285,8 +297,16 @@ export default function RoomPage({ params }: PageProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ letter, categoryLabel: catLabel }),
               })
-              const { word } = await res.json() as { word: string }
-              if (word) { updateAnswer(catId, word); setHintUsed(true) }
+              const { word, explanation } = await res.json() as { word: string; explanation: string }
+              if (word) {
+                updateAnswer(catId, word)
+                setHintUsed(true)
+                setHintsMap(prev => {
+                  const next = { ...prev, [catId]: { word, explanation: explanation ?? '' } }
+                  hintsMapRef.current = next
+                  return next
+                })
+              }
             } catch { /* silently fail */ }
             setHintLoading(false)
           }}
@@ -324,13 +344,17 @@ export default function RoomPage({ params }: PageProps) {
           onNext={handleNextRound}
           maxRounds={room?.settings.maxRounds ?? 5}
           currentRound={room?.rounds.length ?? 0}
+          hintsMap={hintsMap}
         />
       )}
 
       {phase === 'finished' && (
         <FinishedView
           players={players}
+          myId={myId}
+          isHost={isHost}
           onHome={() => router.push('/')}
+          onRematch={() => connectSocket().emit('room:rematch')}
         />
       )}
 
@@ -460,15 +484,19 @@ function LobbyView({
                 <li key={p.id} className="flex items-center gap-3 py-1">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
-                    style={{ backgroundColor: p.isHost ? '#FFD93D' : p.spectating ? '#ffffff22' : '#4ECDC4', color: '#1A1A2E' }}
+                    style={{
+                      backgroundColor: p.avatar ? 'transparent' : (p.isHost ? '#FFD93D' : p.spectating ? '#ffffff22' : '#4ECDC4'),
+                      color: '#1A1A2E',
+                      border: p.avatar ? `2px solid ${p.isHost ? '#FFD93D' : p.spectating ? '#ffffff33' : '#4ECDC4'}` : 'none',
+                    }}
                   >
                     {p.avatar
-                      ? <img src={p.avatar} alt={p.nickname} style={{ width: 36, height: 36, objectFit: 'cover' }} />
+                      ? <img src={p.avatar} alt={p.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : p.nickname[0].toUpperCase()
                     }
                   </div>
                   <span className="font-medium flex-1 text-sm" style={{ opacity: p.spectating ? 0.6 : 1 }}>{p.nickname}</span>
-                  {p.isHost && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFD93D22', color: '#FFD93D' }}>host</span>}
+                  {p.isHost && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFD93D22', color: '#FFD93D' }}>Criador</span>}
                   {p.spectating && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ffffff11', color: '#ffffff60' }}>assistindo</span>}
                 </li>
               ))}
@@ -479,45 +507,83 @@ function LobbyView({
             )}
           </div>
 
-          {/* ── Categorias (host, colapsável) ── */}
-          {isHost && (
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
-              <button
-                onClick={() => setShowCats((v) => !v)}
-                className="w-full px-4 py-3 flex items-center justify-between active:opacity-70"
-              >
-                <p className="text-xs font-bold uppercase tracking-wider opacity-60">Categorias ({selectedCats.length}/8)</p>
-                <span className="opacity-40 text-sm">{showCats ? '▲' : '▼'}</span>
-              </button>
+          {/* ── Categorias (editável para host, leitura para outros) ── */}
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
+            <button
+              onClick={() => isHost && setShowCats((v) => !v)}
+              className={`w-full px-4 py-3 flex items-center justify-between ${isHost ? 'active:opacity-70' : ''}`}
+            >
+              <p className="text-xs font-bold uppercase tracking-wider opacity-60">
+                Categorias ({selectedCats.length})
+              </p>
+              {isHost && <span className="opacity-40 text-sm">{showCats ? '▲' : '▼'}</span>}
+            </button>
 
-              {showCats && (
-                <div className="px-4 pb-4 flex flex-wrap gap-2">
-                  {ALL_CATEGORIES.map((cat) => {
-                    const sel = selectedCats.includes(cat.id)
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => toggleCat(cat.id)}
-                        className="px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95"
-                        style={{
-                          backgroundColor: sel ? '#FF6B6B' : '#16213E',
-                          color: sel ? 'white' : '#ffffff80',
-                          border: sel ? '2px solid #FF6B6B' : '2px solid transparent',
-                        }}
-                      >
-                        {cat.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+            {/* Chips de categorias selecionadas — sempre visíveis para todos */}
+            {(!isHost || !showCats) && (
+              <div className="px-4 pb-4 flex flex-wrap gap-2">
+                {ALL_CATEGORIES.filter(c => selectedCats.includes(c.id)).map((cat) => {
+                  const color = cat.group === 'classica' ? '#FF6B6B' : cat.group === 'escolar' ? '#4ECDC4' : '#9B59B6'
+                  return (
+                    <span
+                      key={cat.id}
+                      className="px-3 py-1 rounded-full text-xs font-bold"
+                      style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
+                    >
+                      {cat.label}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Seletor editável (somente host) */}
+            {isHost && showCats && (
+              <div className="px-4 pb-4 flex flex-wrap gap-2">
+                {ALL_CATEGORIES.map((cat) => {
+                  const sel = selectedCats.includes(cat.id)
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => toggleCat(cat.id)}
+                      className="px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95"
+                      style={{
+                        backgroundColor: sel ? '#FF6B6B' : '#16213E',
+                        color: sel ? 'white' : '#ffffff80',
+                        border: sel ? '2px solid #FF6B6B' : '2px solid transparent',
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Ranking da sala ── */}
+          {players.some(p => p.totalScore > 0) && (
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#0F3460' }}>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wider opacity-60">Pontuações</p>
+                <Image src="/icons/btn_resumo.png" alt="" width={20} height={20} style={{ opacity: 0.5 }} />
+              </div>
+              <div className="px-4 pb-4 flex flex-col gap-2">
+                {[...players].sort((a, b) => b.totalScore - a.totalScore).map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <span className="text-sm font-black w-4 text-center" style={{ color: i === 0 ? '#FFD93D' : i === 1 ? '#C0C0C0' : '#CD7F32' }}>
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 text-sm font-medium truncate">{p.nickname}</span>
+                    <span className="text-sm font-bold" style={{ color: '#FFD93D' }}>{p.totalScore}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {!isHost && (
-            <div className="w-full py-4 rounded-2xl text-center" style={{ backgroundColor: '#0F3460' }}>
-              <p className="opacity-60 text-sm animate-pulse">Aguardando o host iniciar a partida…</p>
-            </div>
+            <p className="text-xs opacity-40 text-center animate-pulse">Aguardando o criador iniciar a partida…</p>
           )}
 
           {error && <p className="text-sm font-medium text-center" style={{ color: '#FF6B6B' }}>{error}</p>}
@@ -528,14 +594,15 @@ function LobbyView({
       <BottomBar
         center={
           <>
-            <BtnSecondary onClick={() => window.location.href = '/'} label="SAIR" icon="🚪" />
+            <BtnSecondary onClick={() => window.location.href = '/'} iconSrc="/icons/btn_sair.png" label="SAIR" size={64} />
             {isHost && (
               <BtnPrimary
                 onClick={onStart}
                 disabled={players.length < 2}
+                iconSrc="/icons/btn_jogar.png"
                 label="INICIAR"
-                icon="▶"
                 pulse
+                size={64}
               />
             )}
           </>
@@ -554,24 +621,16 @@ function LetterRevealView({ letter }: { letter: string }) {
       style={{ backgroundColor: '#1A1A2E' }}
     >
       <p className="text-lg font-bold opacity-60 uppercase tracking-widest">A letra é</p>
-      <div
-        className="rounded-full flex items-center justify-center animate-letter-enter"
-        style={{
-          width: 280,
-          height: 280,
-          backgroundColor: '#FFD93D',
-          boxShadow: '0 0 60px rgba(255,217,61,0.5)',
-        }}
-      >
-        <Image
+      <Image
           key={letter}
           src={`/letras_sorteio/${letter}.png`}
           alt={letter}
-          width={220}
-          height={220}
+          width={280}
+          height={280}
+          className="animate-letter-enter"
           priority
+          style={{ objectFit: 'contain' }}
         />
-      </div>
     </div>
   )
 }
@@ -690,12 +749,12 @@ function PlayingView({
       </div>
 
       <BottomBar
-        left={<BtnSecondary onClick={() => setCatIdx((i) => i - 1)} icon="←" label="ANTERIOR" disabled={isFirst} />}
+        left={<BtnSecondary onClick={() => setCatIdx((i) => i - 1)} iconSrc="/icons/btn_anterior.png" label="ANTERIOR" disabled={isFirst} />}
         center={
           <>
             <BtnSecondary
               onClick={() => cat && onHint(cat.id, cat.label)}
-              icon={hintLoading ? '⏳' : hintUsed ? '✅' : '💡'}
+              iconSrc={hintUsed || hintLoading ? '/icons/btn_dica_usada.png' : '/icons/btn_dica.png'}
               label={hintUsed ? 'USADA' : 'DICA'}
               color={hintUsed ? 'rgba(255,255,255,0.05)' : 'rgba(255,217,61,0.15)'}
               disabled={hintUsed || hintLoading}
@@ -703,7 +762,7 @@ function PlayingView({
             <BtnPrimary onClick={onStop} label="STOP!" pulse />
           </>
         }
-        right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} icon="→" label="PRÓXIMA" disabled={isLast} />}
+        right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} iconSrc="/icons/btn_proxima.png" label="PRÓXIMA" disabled={isLast} />}
       />
     </div>
   )
@@ -720,9 +779,10 @@ interface ReviewCategoryCardProps {
   getAviso: (a: PlayerAnswer, letter: string, idx: number) => string
   onPrev: (() => void) | null
   onNext: () => void
+  hintInfo?: { word: string; explanation: string }
 }
 
-function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext }: ReviewCategoryCardProps) {
+function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo }: ReviewCategoryCardProps) {
   const sortedAnswers = [...cat.answers].sort((a, b) => {
     if (a.playerId === myId) return -1
     if (b.playerId === myId) return 1
@@ -772,9 +832,15 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
                 <span className="text-xl font-bold truncate" style={{ color: a.valid ? '#95E06C' : a.answer ? '#FF6B6B' : '#ffffff30' }}>
                   {a.answer || '—'}
                 </span>
+                {a.usedHint && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <Image src="/icons/btn_dica.png" alt="" width={16} height={16} style={{ objectFit: 'contain', opacity: 0.8 }} />
+                    {a.hintExplanation && <span className="text-xs" style={{ color: 'rgba(255,217,61,0.7)' }}>{a.hintExplanation}</span>}
+                  </div>
+                )}
               </div>
               <div className="flex flex-col items-center gap-1 shrink-0">
-                <Image src={getAviso(a, letter, idx + ai)} alt="" width={64} height={64} />
+                <Image src={getAviso(a, letter, idx + ai)} alt="" width={100} height={100} style={{ objectFit: 'contain' }} />
                 <span className="font-bold text-base" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
                   {a.points > 0 ? `+${a.points}` : '0'}
                 </span>
@@ -785,11 +851,11 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
       </div>
 
       <BottomBar
-        left={onPrev ? <BtnSecondary onClick={onPrev} icon="←" label="ANTERIOR" /> : undefined}
+        left={onPrev ? <BtnSecondary onClick={onPrev} iconSrc="/icons/btn_anterior.png" label="ANTERIOR" /> : undefined}
         right={
           <BtnPrimary
             onClick={onNext}
-            icon={isLast ? '📋' : '→'}
+            iconSrc={isLast ? '/icons/btn_resumo.png' : '/icons/btn_proxima.png'}
             label={isLast ? 'RESUMO' : 'PRÓXIMA'}
             color={isLast ? '#FF6B6B' : '#4ECDC4'}
             pulse={isLast}
@@ -806,7 +872,7 @@ function getAviso(answer: PlayerAnswer, letter: string, idx = 0): string {
 }
 
 function ReviewView({
-  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound,
+  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound, hintsMap,
 }: {
   letter: string
   results: CategoryResult[]
@@ -818,12 +884,15 @@ function ReviewView({
   onNext: () => void
   maxRounds: number
   currentRound: number
+  hintsMap: Record<string, { word: string; explanation: string }>
 }) {
   const [idx, setIdx] = useState(0)
   const [step, setStep] = useState<'words' | 'summary'>('words')
+  const [mounted, setMounted] = useState(false)
   const isLastRound = currentRound >= maxRounds
 
   useEffect(() => { setIdx(0); setStep('words') }, [results])
+  useEffect(() => { setMounted(true) }, [])
 
   if (phase === 'stopping' || results.length === 0) {
     return (
@@ -855,6 +924,7 @@ function ReviewView({
         getAviso={getAviso}
         onPrev={goBack}
         onNext={advance}
+        hintInfo={hintsMap[cat.categoryId]}
       />
     )
   }
@@ -866,18 +936,17 @@ function ReviewView({
     return 0
   })
 
-  return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
+  if (!mounted) return null
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: '#1A1A2E' }}>
       {/* Cabeçalho */}
-      <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3">
-        <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-          <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
-        </div>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 72, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', backgroundColor: '#1A1A2E' }}>
+        <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} style={{ objectFit: 'contain' }} />
         <h2 className="text-lg font-bold flex-1">Resumo da Rodada</h2>
       </div>
 
-      {/* Conteúdo com scroll */}
-      <div className="flex-1 overflow-y-auto px-4 pb-40 flex flex-col gap-3" style={{ scrollbarWidth: 'none' }}>
+      {/* Conteúdo com scroll — altura explícita sem flex */}
+      <div style={{ position: 'absolute', top: 72, left: 0, right: 0, bottom: 76, overflowY: 'scroll', padding: '8px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         {/* Cards por jogador — "você" sempre primeiro */}
         {sortedPlayers.map((player) => {
@@ -900,10 +969,14 @@ function ReviewView({
               <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: '#16213E' }}>
                 <div
                   className="w-7 h-7 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: isMe ? '#FFD93D' : '#4ECDC4', color: '#1A1A2E' }}
+                  style={{
+                    backgroundColor: player.avatar ? 'transparent' : (isMe ? '#FFD93D' : '#4ECDC4'),
+                    color: '#1A1A2E',
+                    border: player.avatar ? `2px solid ${isMe ? '#FFD93D' : '#4ECDC4'}` : 'none',
+                  }}
                 >
                   {player.avatar
-                    ? <img src={player.avatar} alt="" style={{ width: 28, height: 28, objectFit: 'cover' }} />
+                    ? <img src={player.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : player.nickname[0].toUpperCase()
                   }
                 </div>
@@ -916,32 +989,44 @@ function ReviewView({
                 </span>
               </div>
 
-              {/* Respostas */}
-              <div className="divide-y" style={{ borderColor: '#1A1A2E22' }}>
+              {/* Respostas com scroll interno */}
+              <div style={{ maxHeight: 200, overflowY: 'auto', overflowX: 'hidden' }} className="divide-y" >
                 {results.map((cat, ci) => {
                   const a = cat.answers.find((ans) => ans.playerId === player.id)
                   const empty = { answer: '', valid: false, points: 0, duplicate: false, playerId: '', nickname: '' }
                   return (
-                    <div key={cat.categoryId} className="px-3 py-2 flex items-center gap-2">
-                      <Image
-                        src={getAviso(a ?? empty, letter, ci)}
-                        alt=""
-                        width={48}
-                        height={48}
-                        style={{ objectFit: 'contain', flexShrink: 0 }}
-                      />
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <span className="text-xs opacity-50">{cat.categoryLabel}</span>
-                        <span
-                          className="text-sm font-bold truncate"
-                          style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff25' }}
-                        >
-                          {a?.answer || '—'}
-                        </span>
+                    <div key={cat.categoryId} className="flex flex-col">
+                      <div className="px-3 py-2 flex items-center gap-2">
+                        <Image
+                          src={getAviso(a ?? empty, letter, ci)}
+                          alt=""
+                          width={48}
+                          height={48}
+                          style={{ objectFit: 'contain', flexShrink: 0 }}
+                        />
+                        <div className="flex-1 flex flex-col min-w-0">
+                          <span className="text-xs opacity-50">{cat.categoryLabel}</span>
+                          <span
+                            className="text-sm font-bold truncate"
+                            style={{ color: a?.valid ? '#95E06C' : a?.answer ? '#FF6B6B' : '#ffffff25' }}
+                          >
+                            {a?.answer || '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {a?.usedHint && (
+                            <Image src="/icons/btn_dica.png" alt="Dica" width={20} height={20} style={{ objectFit: 'contain', opacity: 0.8 }} />
+                          )}
+                          <span className="text-sm font-bold" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
+                            {(a?.points ?? 0) > 0 ? `+${a!.points}` : '0'}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold shrink-0" style={{ color: (a?.points ?? 0) > 0 ? '#FFD93D' : '#ffffff40' }}>
-                        {(a?.points ?? 0) > 0 ? `+${a!.points}` : '0'}
-                      </span>
+                      {a?.usedHint && a.hintExplanation && (
+                        <div className="mx-3 mb-2 px-3 py-2 rounded-lg flex items-start gap-2" style={{ backgroundColor: 'rgba(255,217,61,0.08)', border: '1px solid rgba(255,217,61,0.2)' }}>
+                          <p className="text-xs" style={{ color: 'rgba(255,217,61,0.8)' }}>{a.hintExplanation}</p>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -974,7 +1059,7 @@ function ReviewView({
             <BtnPrimary
               onClick={onNext}
               label={isLastRound ? 'RESULTADO' : 'PRÓXIMA'}
-              icon={isLastRound ? '🏆' : '▶'}
+              iconSrc={isLastRound ? '/icons/btn_resumo.png' : '/icons/btn_proxima.png'}
               color={isLastRound ? '#FF6B6B' : '#4ECDC4'}
               pulse
             />
@@ -983,11 +1068,12 @@ function ReviewView({
       ) : (
         <BottomBar
           center={
-            <span className="text-sm font-bold opacity-50 px-4">Aguardando host…</span>
+            <span className="text-sm font-bold opacity-50 px-4">Aguardando criador…</span>
           }
         />
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -1000,28 +1086,49 @@ function getPositionAviso(index: number, total: number): string | null {
   return null
 }
 
-function FinishedView({ players, onHome }: { players: Player[]; onHome: () => void }) {
+function FinishedView({ players, isHost, onHome, onRematch }: { players: Player[]; isHost: boolean; onHome: () => void; onRematch: () => void }) {
   const winner = players[0]
 
+  // Detecta empates no topo
+  const tiedAtTop = players.filter(p => p.totalScore === winner?.totalScore)
+  const hasTie = tiedAtTop.length > 1
+
+  // Critério de desempate: quem tiver mais respostas únicas (15 pts) ao longo das rodadas
+  // Aproximação: mais rodadas acima de 0 pts
+  const tiebreakNote = hasTie
+    ? `Empate! Critério de desempate: número de acertos únicos (respostas exclusivas valem 15 pts).`
+    : null
+
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-md mx-auto w-full">
+    <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-md mx-auto w-full" style={{ paddingBottom: 96 }}>
       <Image src="/aviso/vencedor.png" alt="Vencedor!" width={180} height={180} className="animate-letter-enter" />
       <h2 className="text-3xl font-bold text-center" style={{ color: '#FFD93D' }}>
-        {winner?.nickname} venceu!
+        {hasTie
+          ? `${tiedAtTop.map(p => p.nickname).join(' e ')} empataram!`
+          : `${winner?.nickname} venceu!`}
       </h2>
+
+      {tiebreakNote && (
+        <p className="text-xs text-center px-4 py-2 rounded-xl" style={{ color: 'rgba(255,217,61,0.7)', backgroundColor: 'rgba(255,217,61,0.08)', border: '1px solid rgba(255,217,61,0.2)' }}>
+          {tiebreakNote}
+        </p>
+      )}
 
       {/* Ranking */}
       <div className="w-full flex flex-col gap-2">
         {players.map((p, i) => {
           const aviso = getPositionAviso(i, players.length)
           const medalColor = i === 0 ? '#FFD93D' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'white'
+          const isTied = p.totalScore === winner?.totalScore && i > 0
           return (
             <div
               key={p.id}
               className="flex items-center gap-3 px-4 py-3 rounded-2xl animate-slide-up"
               style={{ backgroundColor: i === 0 ? '#1a1a0a' : '#0F3460', animationDelay: `${i * 80}ms`, border: i === 0 ? '2px solid #FFD93D44' : 'none' }}
             >
-              <span className="text-xl font-black w-6 text-center" style={{ color: medalColor }}>{i + 1}</span>
+              <span className="text-xl font-black w-6 text-center" style={{ color: medalColor }}>
+                {isTied ? '=' : i + 1}
+              </span>
               <Image src={p.avatar || '/avatar/avatar_01.png'} alt={p.nickname} width={40} height={40} className="rounded-full" />
               <span className="font-semibold flex-1">{p.nickname}</span>
               {aviso && <Image src={aviso} alt="" width={36} height={36} />}
@@ -1031,13 +1138,11 @@ function FinishedView({ players, onHome }: { players: Player[]; onHome: () => vo
         })}
       </div>
 
-      <div className="flex-1" />
-
-      <p className="text-sm opacity-50 animate-pulse">Preparando próxima partida…</p>
-
       <BottomBar
-        center={
-          <BtnSecondary onClick={onHome} label="SAIR" icon="🚪" />
+        left={<BtnSecondary onClick={onHome} iconSrc="/icons/btn_inicio.png" label="INÍCIO" size={60} />}
+        center={isHost
+          ? <BtnPrimary onClick={onRematch} iconSrc="/icons/btn_reiniciar.png" label="JOGAR DE NOVO" color="#4ECDC4" pulse />
+          : <span className="text-sm font-bold opacity-50 px-4">Aguardando criador…</span>
         }
       />
     </div>
@@ -1084,7 +1189,7 @@ function RematchView({ players, countdown, ready, onReady }: {
       {!ready ? (
         <BottomBar
           center={
-            <BtnPrimary onClick={onReady} label="VAMOS LÁ!" icon="✅" pulse />
+            <BtnPrimary onClick={onReady} label="VAMOS LÁ!" iconSrc="/icons/btn_jogar.png" pulse />
           }
         />
       ) : (

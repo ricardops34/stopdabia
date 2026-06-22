@@ -55,10 +55,10 @@
     },
     "animal": {
       "label": "Animal",
-      "description": "Qualquer animal real — mamífero, pássaro, peixe, inseto, réptil, anfíbio, etc. Animais mitológicos não valem.",
-      "examples_valid": ["Baleia", "Cachorro", "Dromedário", "Elefante"],
-      "examples_invalid": ["Batman (personagem)", "Dragão (mitológico)"],
-      "edge_cases": "Nome popular aceito além do nome científico. Ex: 'Bicho-pau' vale para B."
+      "description": "Qualquer ser vivo do reino animal — mamífero, ave, peixe, inseto, réptil, anfíbio, crustáceo, aracnídeo, etc. Aceite nomes populares, regionais e compostos. Em caso de dúvida, aceite como acerto.",
+      "examples_valid": ["Baleia", "Cachorro", "Dromedário", "Elefante", "Rato", "Raposa", "Rã", "Rouxinol", "Rinoceronte", "Arara", "Abelha", "Formiga", "Jacaré"],
+      "examples_invalid": ["Batman (personagem)", "Dragão (mitológico)", "Robô (não é ser vivo)"],
+      "edge_cases": "Nome popular aceito além do nome científico. 'Bicho-pau', 'Beija-flor', 'Peixe-espada' valem. Sempre prefira aceitar animais reais conhecidos — 'Rato', 'Rã', 'Raposa', 'Rena' são animais válidos."
     },
     "cor": {
       "label": "Cor",
@@ -81,9 +81,10 @@
     },
     "profissao": {
       "label": "Profissão",
-      "description": "Profissão, ocupação ou cargo reconhecido. Pode ser formal ou informal.",
-      "examples_valid": ["Advogado", "Bombeiro", "Carpinteiro", "Dentista"],
-      "examples_invalid": ["Dormindo (verbo)", "Alto (adjetivo)"]
+      "description": "Profissão, ocupação ou cargo reconhecido que representa uma atividade de trabalho remunerado. Deve ser algo que alguém FAZ como trabalho: médico, pedreiro, professor. NÃO aceite: estados físicos (bebado, bêbado), objetos, animais, adjetivos, verbos, substantivos genéricos que não sejam ocupações.",
+      "examples_valid": ["Advogado", "Bombeiro", "Carpinteiro", "Dentista", "Biólogo", "Bancário", "Bibliotecário"],
+      "examples_invalid": ["Bebado (estado, não profissão)", "Bebe (verbo ou substantivo)", "Bonito (adjetivo)", "Bola (objeto)", "Dormindo (verbo)"],
+      "edge_cases": "A palavra DEVE ser uma ocupação ou cargo de trabalho real. 'Bêbado' NÃO é profissão. 'Bebê' NÃO é profissão. Duvide de qualquer palavra que não responda à pergunta: 'O que essa pessoa faz como trabalho?'"
     },
     "cidade": {
       "label": "Cidade",

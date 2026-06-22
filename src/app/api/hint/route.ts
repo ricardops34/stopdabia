@@ -15,18 +15,26 @@ export async function POST(req: NextRequest) {
     messages: [
       {
         role: 'system',
-        content:
-          'Você é um assistente do jogo STOP ADEDONHA. Responda APENAS com UMA palavra (ou nome próprio) que começa com a letra indicada e pertence à categoria dada. Sem explicação, sem pontuação, sem artigo — somente a palavra.',
+        content: 'Você é um assistente do jogo STOP ADEDONHA para crianças e adolescentes brasileiros. Responda APENAS com JSON no formato {"word":"palavra","explanation":"explicação curta em 1 frase simples de até 15 palavras"}. A palavra DEVE ser em PORTUGUÊS BRASILEIRO, começar com a letra indicada e pertencer à categoria. NUNCA use palavras em inglês ou outro idioma.',
       },
       {
         role: 'user',
-        content: `Letra: ${letter.toUpperCase()}\nCategoria: ${categoryLabel}`,
+        content: `Letra: ${letter.toUpperCase()}\nCategoria: ${categoryLabel}\nIdioma: Português Brasileiro obrigatório`,
       },
     ],
-    max_tokens: 20,
+    max_tokens: 80,
     temperature: 0.7,
+    response_format: { type: 'json_object' },
   })
 
-  const word = completion.choices[0]?.message?.content?.trim().split(/\s+/)[0] ?? ''
-  return NextResponse.json({ word })
+  const raw = completion.choices[0]?.message?.content?.trim() ?? '{}'
+  try {
+    const parsed = JSON.parse(raw) as { word?: string; explanation?: string }
+    const word = (parsed.word ?? '').split(/\s+/)[0]
+    const explanation = parsed.explanation ?? ''
+    return NextResponse.json({ word, explanation })
+  } catch {
+    const word = raw.split(/\s+/)[0]
+    return NextResponse.json({ word, explanation: '' })
+  }
 }

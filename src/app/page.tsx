@@ -192,6 +192,47 @@ function LoginBadge({
   )
 }
 
+function OpenRoomsList({ onSelect, onJoin }: { onSelect: (code: string) => void; onJoin: (code: string) => void }) {
+  const [rooms, setRooms] = useState<{ code: string; players: number; max: number; host: string }[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/rooms')
+        const data = await res.json() as { rooms: typeof rooms }
+        setRooms(data.rooms)
+      } catch { /* silencioso */ }
+    }
+    load()
+    const interval = setInterval(load, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="w-full flex flex-col gap-2">
+      <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>Salas abertas</span>
+      {rooms.length === 0 ? (
+        <p className="text-center text-sm py-3 rounded-xl" style={{ color: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.04)' }}>
+          Nenhuma sala aberta no momento
+        </p>
+      ) : rooms.map((r) => (
+        <button
+          key={r.code}
+          onClick={() => { onSelect(r.code); onJoin(r.code) }}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all active:scale-95"
+          style={{ backgroundColor: '#0F3460', border: '2px solid rgba(78,205,196,0.3)' }}
+        >
+          <div className="flex flex-col items-start">
+            <span className="text-lg font-extrabold tracking-widest" style={{ color: '#4ECDC4' }}>{r.code}</span>
+            <span className="text-xs opacity-50">Criador: {r.host}</span>
+          </div>
+          <span className="text-sm font-bold" style={{ color: '#FFD93D' }}>{r.players}/10 jogadores</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function FormScreen({
   title,
   dogSrc,
@@ -322,13 +363,15 @@ export default function HomePage() {
     else socket.once('connect', doCreate)
   }
 
-  function handleJoinFriends() {
+  function handleJoinFriends(roomCode?: string) {
+    const finalCode = (roomCode ?? code).trim().toUpperCase()
     setError('')
     if (nickname.trim().length < 3) {
-      setError('Apelido precisa ter pelo menos 3 letras')
+      if (roomCode) setCode(roomCode)
+      setError('Preencha seu apelido antes de entrar')
       return
     }
-    if (code.trim().length < 6) {
+    if (finalCode.length < 6) {
       setError('Codigo invalido')
       return
     }
@@ -336,15 +379,15 @@ export default function HomePage() {
     setLoading(true)
     const socket = connectSocket()
     const doJoin = () => {
-      socket.emit('room:join', code.trim().toUpperCase(), nickname.trim(), avatar, (res: { ok?: boolean; error?: string }) => {
+      socket.emit('room:join', finalCode, nickname.trim(), avatar, (res: { ok?: boolean; error?: string }) => {
         setLoading(false)
         if (!res.ok) {
           setError(res.error ?? 'Erro ao entrar')
           return
         }
         savePlayer(nickname.trim(), avatar)
-        saveSession(code.trim().toUpperCase(), nickname.trim())
-        router.push(`/room/${code.trim().toUpperCase()}`)
+        saveSession(finalCode, nickname.trim())
+        router.push(`/room/${finalCode}`)
       })
     }
 
@@ -394,7 +437,7 @@ export default function HomePage() {
         title="Entrar na Sala"
         dogSrc="/imagens/cachorra-home-4.png"
         onBack={back}
-        actionIconSrc="/icons/btn_avançar.png"
+        actionIconSrc="/icons/btn_entrar_sala.png"
         actionLabel={loading ? 'ENTRANDO' : 'ENTRAR'}
         actionColor="#9B59B6"
         onAction={handleJoinFriends}
@@ -413,7 +456,7 @@ export default function HomePage() {
           style={{ backgroundColor: '#0F3460', border: '2px solid rgba(255,255,255,0.2)' }}
         />
         <div className="flex w-full flex-col gap-2">
-          <span className="text-sm font-bold text-white/65">Codigo da sala</span>
+          <span className="text-sm font-bold text-white/65">Código da sala</span>
           <input
             type="text"
             placeholder="CODIGO"
@@ -425,6 +468,7 @@ export default function HomePage() {
             style={{ backgroundColor: '#0F3460', border: '3px solid #4ECDC4' }}
           />
         </div>
+        <OpenRoomsList onSelect={(c) => setCode(c)} onJoin={(c) => handleJoinFriends(c)} />
         {error && <p className="text-center text-sm font-bold text-yellow-200">{error}</p>}
       </FormScreen>
     )

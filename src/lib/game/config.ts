@@ -39,6 +39,8 @@ export function generateRoomCode(): string {
   return code
 }
 
-export function drawLetter(): string {
-  return LETTERS[Math.floor(Math.random() * LETTERS.length)]
+export function drawLetter(used: string[] = []): string {
+  const available = LETTERS.filter(l => !used.includes(l))
+  const pool = available.length > 0 ? available : LETTERS
+  return pool[Math.floor(Math.random() * pool.length)]
 }

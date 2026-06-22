@@ -1,6 +1,11 @@
 import type { Room } from '@/lib/game/types'
 
-const rooms = new Map<string, Room>()
+declare global {
+  // eslint-disable-next-line no-var
+  var __stop_rooms: Map<string, Room> | undefined
+}
+
+const rooms: Map<string, Room> = global.__stop_rooms ?? (global.__stop_rooms = new Map())
 
 export function getRoom(code: string): Room | undefined {
   return rooms.get(code)

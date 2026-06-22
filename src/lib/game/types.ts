@@ -41,6 +41,8 @@ export interface PlayerAnswer {
   points: number
   duplicate: boolean
   outcome?: AnswerOutcome
+  usedHint?: boolean
+  hintExplanation?: string
 }
 
 export interface CategoryResult {
@@ -53,6 +55,7 @@ export interface Round {
   number: number
   letter: string
   answers: Record<string, Record<string, string>>
+  hints?: Record<string, Record<string, { word: string; explanation: string }>>
   results: CategoryResult[]
   stoppedBy: string | null
 }
@@ -66,6 +69,7 @@ export interface Room {
   currentRound: Round | null
   hostId: string
   createdAt: number
+  usedLetters: string[]
 }
 
 export interface ValidationRequest {

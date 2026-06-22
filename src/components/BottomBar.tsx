@@ -137,7 +137,18 @@ export function BtnSecondary({
   disabled,
   size = 56,
 }: SecondaryButtonProps) {
-  const iconSize = size <= 56 ? 32 : 38
+  if (iconSrc) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className="transition-transform active:scale-90 disabled:opacity-20"
+        style={{ flexShrink: 0, background: 'none', border: 'none', padding: 0 }}
+      >
+        <Image src={iconSrc} alt={label ?? ''} width={size} height={size} style={{ objectFit: 'contain', display: 'block' }} />
+      </button>
+    )
+  }
 
   return (
     <button
@@ -153,17 +164,9 @@ export function BtnSecondary({
         flexShrink: 0,
       }}
     >
-      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={iconSize} />
+      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={size} />
       {label && (
-        <span
-          style={{
-            fontSize: size <= 56 ? 8 : 9,
-            color: 'rgba(255,255,255,0.6)',
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            textAlign: 'center',
-          }}
-        >
+        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
           {label}
         </span>
       )}
@@ -181,7 +184,18 @@ export function BtnPrimary({
   pulse,
   size = 56,
 }: PrimaryButtonProps) {
-  const iconSize = size === 56 ? 32 : 40
+  if (iconSrc) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`transition-transform active:scale-90 disabled:opacity-60${pulse ? ' animate-pulse-stop' : ''}`}
+        style={{ flexShrink: 0, background: 'none', border: 'none', padding: 0 }}
+      >
+        <Image src={iconSrc} alt={label ?? ''} width={size} height={size} style={{ objectFit: 'contain', display: 'block', filter: disabled ? 'grayscale(0.5)' : undefined }} />
+      </button>
+    )
+  }
 
   return (
     <button
@@ -197,7 +211,7 @@ export function BtnPrimary({
         flexShrink: 0,
       }}
     >
-      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={iconSize} />
+      <ButtonIcon icon={icon} iconSrc={iconSrc} label={label} size={size} />
       <span
         style={{
           fontSize: size === 56 ? 8 : 9,

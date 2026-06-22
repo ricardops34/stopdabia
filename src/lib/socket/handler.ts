@@ -113,6 +113,7 @@ export function attachSocketServer(httpServer: HttpServer): IO {
         currentRound: null,
         hostId: socket.id,
         createdAt: Date.now(),
+        usedLetters: [],
       }
       setRoom(room)
       socket.data.roomCode = code
@@ -180,7 +181,7 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       cb({ ok: true })
     })
 
-    socket.on('game:answers', (answers) => {
+    socket.on('game:answers', (answers, hints?: Record<string, { word: string; explanation: string }>) => {
       const room = getRoom(socket.data.roomCode)
       if (!room || !['playing', 'stopping'].includes(room.phase) || !room.currentRound) return
       if (!room.currentRound.answers[socket.id]) {
@@ -189,6 +190,11 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       for (const [catId, value] of Object.entries(answers)) {
         const sanitized = String(value).slice(0, 80).replace(/[<>]/g, '')
         room.currentRound.answers[socket.id][catId] = sanitized
+      }
+      // Salva hints por jogador para incluir nos resultados
+      if (hints && Object.keys(hints).length > 0) {
+        if (!room.currentRound.hints) room.currentRound.hints = {}
+        room.currentRound.hints[socket.id] = hints
       }
       setRoom(room)
     })
@@ -203,6 +209,16 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       io.to(room.code).emit('game:stopped', socket.data.nickname)
       io.to(room.code).emit('game:phase', 'stopping')
       setTimeout(() => endRound(io, room.code), 2000)
+    })
+
+    // Host inicia rematch manualmente a partir da tela de ranking
+    socket.on('room:rematch', () => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room || room.phase !== 'finished') return
+      const isHost = room.hostId === socket.id ||
+        room.players.find((p) => p.nickname === socket.data.nickname)?.isHost
+      if (!isHost) return
+      startRematch(io, room)
     })
 
     socket.on('rematch:ready', () => {
@@ -263,11 +279,13 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       } else {
         room.phase = 'lobby'
       }
-      // Garante que o socket atual é o host
       room.hostId = socket.id
       setRoom(room)
       broadcastRoom(io, room)
       io.to(room.code).emit('game:phase', room.phase)
+
+      // Rematch inicia APENAS quando o host clicar em "Jogar de Novo" (room:rematch)
+      // Não há auto-transição após o ranking.
     })
 
     // Reconexão: socket perdeu dados mas jogador ainda está na sala
@@ -362,8 +380,10 @@ function activateSpectators(room: Room) {
 function startLetterReveal(io: IO, room: Room) {
   activateSpectators(room)
 
-  // Sorteio da letra ANTES do countdown
-  const letter = drawLetter()
+  // Sorteio da letra ANTES do countdown — sem repetir letras já usadas nesta sala
+  if (!room.usedLetters) room.usedLetters = []
+  const letter = drawLetter(room.usedLetters)
+  room.usedLetters.push(letter)
 
   room.phase = 'countdown'
   setRoom(room)
@@ -432,7 +452,7 @@ async function endRound(io: IO, code: string) {
   setRoom(room)
   io.to(code).emit('game:phase', 'review')
 
-  const { letter, answers } = room.currentRound
+  const { letter, answers, hints } = room.currentRound
   const results = []
 
   for (const cat of room.settings.categories) {
@@ -451,6 +471,8 @@ async function endRound(io: IO, code: string) {
       outcome: validMap.get(a.playerId)?.outcome ?? 'vazio' as import('@/lib/game/types').AnswerOutcome,
       points: 0,
       duplicate: false,
+      usedHint: !!(hints?.[a.playerId]?.[cat.id]),
+      hintExplanation: hints?.[a.playerId]?.[cat.id]?.explanation ?? '',
     }))
 
     const scored = computeCategoryScores(answerList)
@@ -475,22 +497,8 @@ async function endRound(io: IO, code: string) {
   io.to(code).emit('room:state', room)
   io.to(code).emit('scoreboard:update', room.players)
 
-  // Após última rodada: mostra ranking por 8s, depois vai para rematch
-  if (isLastRound) {
-    setTimeout(() => {
-      const fresh = getRoom(code)
-      if (!fresh) return
-      fresh.phase = 'finished'
-      setRoom(fresh)
-      io.to(code).emit('game:phase', 'finished')
-
-      // Após 8s no ranking, inicia votação de rematch
-      setTimeout(() => {
-        const r = getRoom(code)
-        if (r && r.phase === 'finished') startRematch(io, r)
-      }, 8000)
-    }, 1000)
-  }
+  // Na última rodada, a revisão continua normalmente.
+  // O host clica em "RESULTADO" → room:ready → server transita para 'finished'.
 
   // Persiste no Redis (fire-and-forget, não bloqueia o jogo se Redis estiver fora)
   const roundNum = room.rounds.length

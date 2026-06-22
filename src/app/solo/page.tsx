@@ -125,8 +125,6 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
                   const isCurrent = key === currentKey
                   const locked = false
 
-                  const nodeImg = done ? '/trail/node_done.png' : '/trail/node_locked.png'
-
                   return (
                     <button
                       key={l}
@@ -134,31 +132,35 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
                       className="relative flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 active:scale-90 transition-transform"
                       style={{
                         width: 'calc(25% - 6px)',
-                        backgroundColor: locked ? 'rgba(255,255,255,0.04)' : isCurrent ? 'rgba(255,217,61,0.12)' : 'rgba(149,224,108,0.10)',
+                        backgroundColor: locked ? 'rgba(255,255,255,0.04)' : isCurrent ? 'rgba(255,217,61,0.12)' : done ? 'rgba(149,224,108,0.08)' : 'rgba(255,255,255,0.06)',
                         border: isCurrent ? '2px solid #FFD93D' : done ? '2px solid #95E06C' : '2px solid rgba(255,255,255,0.08)',
                         opacity: locked ? 0.5 : 1,
-                        boxShadow: isCurrent ? '0 0 16px rgba(255,217,61,0.5)' : undefined,
+                        boxShadow: isCurrent ? '0 0 16px rgba(255,217,61,0.5)' : done ? '0 0 8px rgba(149,224,108,0.3)' : undefined,
                       }}
                     >
-                      <div style={{ position: 'relative', width: 52, height: 52 }}>
-                        {(done || locked) && <Image src={nodeImg} alt="" fill style={{ objectFit: 'contain' }} />}
-                        <Image
-                          src={`/icons/letra_${l.toLowerCase()}.png`}
-                          alt={l}
-                          width={36}
-                          height={36}
-                          style={{
-                            objectFit: 'contain',
-                            position: 'absolute',
-                            top: '50%', left: '50%',
-                            transform: 'translate(-50%,-50%)',
-                            zIndex: 1,
-                            filter: locked ? 'grayscale(1) opacity(0.5)' : undefined,
-                          }}
-                        />
-                      </div>
+                      {/* Badge de concluído no canto superior direito */}
                       {done && (
-                        <span style={{ fontSize: 10, fontWeight: 900, color: '#FFD93D' }}>{progress[l].score}pts</span>
+                        <div style={{
+                          position: 'absolute', top: 4, right: 4,
+                          width: 14, height: 14, borderRadius: '50%',
+                          backgroundColor: '#95E06C',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 900, color: '#0a1628', lineHeight: 1,
+                          zIndex: 2,
+                        }}>✓</div>
+                      )}
+                      <Image
+                        src={`/icons/letra_${l.toLowerCase()}.png`}
+                        alt={l}
+                        width={36}
+                        height={36}
+                        style={{
+                          objectFit: 'contain',
+                          filter: locked ? 'grayscale(1) opacity(0.5)' : undefined,
+                        }}
+                      />
+                      {done && (
+                        <span style={{ fontSize: 10, fontWeight: 900, color: '#95E06C' }}>{progress[key].score}pts</span>
                       )}
                       {isCurrent && (
                         <span style={{ fontSize: 9, fontWeight: 700, color: '#FFD93D' }}>JOGAR</span>
@@ -240,9 +242,10 @@ interface ReviewWordCardProps {
   getAviso: (r: AnswerResult, idx: number) => string
   onPrev: (() => void) | null
   onNext: () => void
+  hintInfo?: { word: string; explanation: string }
 }
 
-function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext }: ReviewWordCardProps) {
+function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext, hintInfo }: ReviewWordCardProps) {
   const isLast = idx === total - 1
   const avisoSrc = getAviso(r, idx)
 
@@ -251,10 +254,9 @@ function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext }: Rev
       {/* Cabeçalho */}
       <div className="shrink-0 px-4 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, backgroundColor: '#FFD93D' }}>
-            <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={30} height={30} />
-          </div>
+          <Image src={`/icons/letra_${letter.toLowerCase()}.png`} alt={letter} width={40} height={40} style={{ objectFit: 'contain' }} />
           <h2 className="text-xl font-bold flex-1" style={{ color: '#FFD93D' }}>{r.categoryLabel}</h2>
+          {hintInfo && <Image src="/icons/btn_dica_usada.png" alt="Dica usada" width={28} height={28} style={{ objectFit: 'contain' }} />}
           <span className="text-sm opacity-40 tabular-nums">{idx + 1}/{total}</span>
         </div>
         {/* Indicador de progresso por segmentos */}
@@ -281,6 +283,16 @@ function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext }: Rev
             {r.answer || '—'}
           </span>
         </div>
+
+        {/* Explicação da dica */}
+        {hintInfo && (
+          <div className="w-full rounded-xl px-4 py-3 flex items-start gap-2" style={{ backgroundColor: 'rgba(255,217,61,0.08)', border: '1px solid rgba(255,217,61,0.2)' }}>
+            <Image src="/icons/btn_dica.png" alt="" width={24} height={24} style={{ objectFit: 'contain', flexShrink: 0, marginTop: 2 }} />
+            <p className="text-sm font-medium" style={{ color: 'rgba(255,217,61,0.8)' }}>
+              {hintInfo.explanation || `Dica usada: "${hintInfo.word}" é uma resposta válida para esta categoria.`}
+            </p>
+          </div>
+        )}
 
         {/* Aviso em destaque */}
         <Image
@@ -336,6 +348,8 @@ export default function SoloPage() {
   const [reviewStep, setReviewStep] = useState<ReviewStep>('words')
   const [hintUsed, setHintUsed] = useState(false)
   const [hintLoading, setHintLoading] = useState(false)
+  const [hintsMap, setHintsMap] = useState<Record<string, { word: string; explanation: string }>>({})
+
   const [catIdx, setCatIdx] = useState(0)
 
   const answersRef = useRef<Record<string, string>>({})
@@ -363,6 +377,7 @@ export default function SoloPage() {
     setResults([])
     setShowDemora(false)
     setHintUsed(false)
+    setHintsMap({})
     setHintLoading(false)
     setCatIdx(0)
     setPhase('letter')
@@ -546,8 +561,12 @@ export default function SoloPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ letter, categoryLabel: target.label }),
       })
-      const { word } = await res.json() as { word: string }
-      if (word) { updateAnswer(target.id, word); setHintUsed(true) }
+      const { word, explanation } = await res.json() as { word: string; explanation: string }
+      if (word) {
+        updateAnswer(target.id, word)
+        setHintUsed(true)
+        setHintsMap(prev => ({ ...prev, [target.id]: { word, explanation } }))
+      }
     } catch { /* silently fail */ }
     setHintLoading(false)
   }
@@ -634,7 +653,7 @@ export default function SoloPage() {
                 onClick={startGame}
                 disabled={selectedCats.length === 0}
                 label="JOGAR!"
-                icon="▶"
+                iconSrc="/icons/btn_jogar.png"
                 pulse
               />
             </>
@@ -791,6 +810,7 @@ export default function SoloPage() {
           total={results.length}
           letter={letter}
           getAviso={getAviso}
+          hintInfo={r.categoryId ? hintsMap[r.categoryId] : undefined}
           onPrev={reviewIdx > 0 ? () => setReviewIdx((i) => i - 1) : null}
           onNext={() => isLast ? setReviewStep('summary') : setReviewIdx((i) => i + 1)}
         />
