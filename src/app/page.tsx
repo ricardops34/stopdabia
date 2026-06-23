@@ -536,13 +536,13 @@ export default function HomePage() {
   }
 
   return (
-    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden" style={{ backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
+    <main style={{ position: 'relative', display: 'flex', minHeight: '100dvh', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
       <BackgroundLetters />
-      <div className="pointer-events-none absolute left-4 top-0 opacity-90">
+      <div style={{ pointerEvents: 'none', position: 'absolute', left: 16, top: 0, opacity: 0.9 }}>
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
       </div>
 
-      <div className="absolute right-4 top-4 z-20">
+      <div style={{ position: 'absolute', right: 16, top: 16, zIndex: 20 }}>
         <LoginBadge
           user={user}
           avatarPath={avatar}
@@ -553,7 +553,6 @@ export default function HomePage() {
       </div>
 
       <section
-        className="relative z-10 flex-1 flex-col items-center justify-evenly px-3 pb-24 pt-2"
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '8px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
       >
         {/* Logo */}
@@ -562,8 +561,8 @@ export default function HomePage() {
           alt="STOP ADEDONHA"
           width={390}
           height={280}
-          className="w-[min(390px,96vw)] object-contain animate-pulse-logo"
-          style={{ maxHeight: 'min(30vh, 220px)', width: '100%', flexShrink: 0 }}
+          className="animate-pulse-logo"
+          style={{ maxHeight: 'min(30vh, 220px)', width: '100%', objectFit: 'contain', flexShrink: 0 }}
           priority
         />
 
@@ -573,15 +572,18 @@ export default function HomePage() {
           alt="Mascote STOP"
           width={300}
           height={300}
-          className="object-contain drop-shadow-[0_24px_52px_rgba(0,0,0,0.60)] animate-float-dog"
-          style={{ maxHeight: 'min(28vh, 200px)', width: 'auto', flexShrink: 1 }}
+          className="animate-float-dog"
+          style={{ maxHeight: 'min(28vh, 200px)', width: 'auto', objectFit: 'contain', flexShrink: 1, filter: 'drop-shadow(0 24px 52px rgba(0,0,0,0.60))' }}
           priority
         />
 
         {/* Tagline */}
         <div
-          className="w-full rounded-[24px] px-4 py-3 text-center"
           style={{
+            width: '100%',
+            borderRadius: 24,
+            padding: '12px 16px',
+            textAlign: 'center',
             backgroundColor: 'rgba(8,19,36,0.93)',
             border: '2px solid rgba(255,217,61,0.22)',
             boxShadow: '0 10px 28px rgba(0,0,0,0.32)',
