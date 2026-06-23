@@ -552,7 +552,10 @@ export default function HomePage() {
         />
       </div>
 
-      <section className="relative z-10 mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-evenly px-3 pb-24 pt-2">
+      <section
+        className="relative z-10 flex-1 flex-col items-center justify-evenly px-3 pb-24 pt-2"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '8px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
+      >
         {/* Logo */}
         <Image
           src="/imagens/logo-home.png"
@@ -560,7 +563,7 @@ export default function HomePage() {
           width={390}
           height={280}
           className="w-[min(390px,96vw)] object-contain animate-pulse-logo"
-          style={{ maxHeight: '32vh' }}
+          style={{ maxHeight: 'min(30vh, 220px)', width: '100%', flexShrink: 0 }}
           priority
         />
 
@@ -571,7 +574,7 @@ export default function HomePage() {
           width={300}
           height={300}
           className="object-contain drop-shadow-[0_24px_52px_rgba(0,0,0,0.60)] animate-float-dog"
-          style={{ maxHeight: '36vh', width: 'auto' }}
+          style={{ maxHeight: 'min(28vh, 200px)', width: 'auto', flexShrink: 1 }}
           priority
         />
 

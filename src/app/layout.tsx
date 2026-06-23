@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" style={{ height: '100%' }}>
-      <body style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <body style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#0a1628' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
           {children}
         </div>
       </body>

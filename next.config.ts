@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Socket.IO custom server is handled by server.ts
+  images: {
+    unoptimized: true,
+  },
 }
 
 export default nextConfig
