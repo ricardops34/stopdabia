@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  stop-adedonha:
+    image: bjsoftware/stop-adedonha:latest
+    networks:
+      - network_public
+      - network_db
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - NEXT_PUBLIC_BASE_URL=https://adedonha.bjsoft.com.br
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_public
+
+        # Roteamento HTTPS
+        - traefik.http.routers.stop-adedonha.rule=Host(`adedonha.bjsoft.com.br`)
+        - traefik.http.routers.stop-adedonha.entrypoints=websecure
+        - traefik.http.routers.stop-adedonha.tls=true
+        - traefik.http.routers.stop-adedonha.tls.certresolver=letsencrypt
+
+        # Serviço interno (Traefik já suporta WebSocket nativamente)
+        - traefik.http.services.stop-adedonha.loadbalancer.server.port=3000
+
+networks:
+  network_public:
+    external: true
+  network_db:
+    external: true

@@ -94,7 +94,7 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
         {/* Header fixo no topo */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px 8px', zIndex: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="STOP ADEDONHA" width={140} style={{ height: 'auto', display: 'block' }} />
+          <img src="/logo.png" alt="STOP ADEDONHA" width={140} className="animate-pulse-logo" style={{ height: 'auto', display: 'block' }} />
         </div>
 
         {/* Trilha scrollável — top=130px (header), bottom=76px (barra) */}
@@ -349,6 +349,7 @@ export default function SoloPage() {
   const [hintUsed, setHintUsed] = useState(false)
   const [hintLoading, setHintLoading] = useState(false)
   const [hintsMap, setHintsMap] = useState<Record<string, { word: string; explanation: string }>>({})
+  const [easterEgg, setEasterEgg] = useState<string | null>(null)
 
   const [catIdx, setCatIdx] = useState(0)
 
@@ -400,6 +401,11 @@ export default function SoloPage() {
 
   function startCountdown(l: string) {
     setPhase('countdown')
+    if (Math.random() < 0.2) {
+      const n = Math.floor(Math.random() * 10) + 1
+      setEasterEgg(`/easter/${n}.png`)
+      setTimeout(() => setEasterEgg(null), 3000)
+    }
     let count = 3
 
     const tick = () => {
@@ -675,6 +681,13 @@ export default function SoloPage() {
 
   if (phase === 'countdown' && countdown !== null) {
     const imgMap: Record<number, string> = { 3: '/contagem/03.png', 2: '/contagem/02.png', 1: '/contagem/01.png', 0: '/contagem/vai.png' }
+    if (easterEgg) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-letter-enter" style={{ backgroundColor: '#1A1A2E' }}>
+          <Image src={easterEgg} alt="" width={320} height={320} style={{ objectFit: 'contain' }} onError={() => setEasterEgg(null)} priority />
+        </div>
+      )
+    }
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen" style={{ backgroundColor: '#1A1A2E' }}>
         <Image key={countdown} src={imgMap[countdown] ?? '/contagem/vai.png'} alt={String(countdown)} width={300} height={300} className="animate-letter-enter" priority />

@@ -211,14 +211,14 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       setTimeout(() => endRound(io, room.code), 2000)
     })
 
-    // Host inicia rematch manualmente a partir da tela de ranking
+    // Host inicia nova partida a partir da tela de ranking (vai direto ao lobby)
     socket.on('room:rematch', () => {
       const room = getRoom(socket.data.roomCode)
       if (!room || room.phase !== 'finished') return
       const isHost = room.hostId === socket.id ||
         room.players.find((p) => p.nickname === socket.data.nickname)?.isHost
       if (!isHost) return
-      startRematch(io, room)
+      resetAndStart(io, room)
     })
 
     socket.on('rematch:ready', () => {
@@ -253,6 +253,65 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       }
     })
 
+    // ── Enquete de questionamento de resposta ──────────────────────────────────
+
+    socket.on('review:challenge', ({ categoryId, playerId, initialVote }: { categoryId: string; playerId: string; initialVote: 'like' | 'dislike' }) => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room || room.phase !== 'review') return
+      if (socket.id === playerId) return // dono não pode questionar a própria resposta
+      if (room.activeChallenge && !room.activeChallenge.resolved) return // já tem enquete ativa
+
+      const catResult = room.currentRound?.results.find((r) => r.categoryId === categoryId)
+      if (!catResult) return
+      const answer = catResult.answers.find((a) => a.playerId === playerId)
+      if (!answer) return
+
+      const challenge: import('@/lib/game/types').ReviewChallenge = {
+        categoryId,
+        categoryLabel: catResult.categoryLabel,
+        playerId,
+        nickname: answer.nickname,
+        answer: answer.answer,
+        currentValid: answer.valid ?? false,
+        votes: { [socket.id]: initialVote }, // voto inicial do questionador
+        resolved: false,
+      }
+      room.activeChallenge = challenge
+      setRoom(room)
+      const initLikes = initialVote === 'like' ? 1 : 0
+      const initDislikes = initialVote === 'dislike' ? 1 : 0
+      const total = room.players.filter((p) => !p.spectating && p.id !== playerId).length
+      io.to(room.code).emit('review:challenge:open', challenge)
+      io.to(room.code).emit('review:challenge:votes', { likes: initLikes, dislikes: initDislikes, total })
+
+      // Timeout de 12s: aplica maioria ou mantém IA
+      setTimeout(() => {
+        const fresh = getRoom(room.code)
+        if (!fresh?.activeChallenge || fresh.activeChallenge.resolved) return
+        if (fresh.activeChallenge.categoryId !== categoryId || fresh.activeChallenge.playerId !== playerId) return
+        resolveChallenge(io, fresh)
+      }, 12000)
+    })
+
+    socket.on('review:vote', ({ vote }: { vote: 'like' | 'dislike' }) => {
+      const room = getRoom(socket.data.roomCode)
+      if (!room || room.phase !== 'review') return
+      if (!room.activeChallenge || room.activeChallenge.resolved) return
+      if (socket.id === room.activeChallenge.playerId) return // dono não vota
+      room.activeChallenge.votes[socket.id] = vote
+      setRoom(room)
+      const likes = Object.values(room.activeChallenge.votes).filter((v) => v === 'like').length
+      const dislikes = Object.values(room.activeChallenge.votes).filter((v) => v === 'dislike').length
+      // total = todos ativos exceto o dono da resposta
+      const total = room.players.filter((p) => !p.spectating && p.id !== room.activeChallenge!.playerId).length
+      io.to(room.code).emit('review:challenge:votes', { likes, dislikes, total })
+
+      // Resolve se todos votaram
+      if (likes + dislikes >= total) {
+        resolveChallenge(io, room)
+      }
+    })
+
     // Host atualiza categorias antes de iniciar
     socket.on('room:settings', (categoryIds: string[]) => {
       const room = getRoom(socket.data.roomCode)
@@ -261,6 +320,7 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       if (cats.length < 1 || cats.length > 8) return
       room.settings.categories = cats
       setRoom(room)
+      broadcastRoom(io, room)
     })
 
     // Avança após revisão: lobby (próxima) ou finished (última rodada)
@@ -322,6 +382,56 @@ export function attachSocketServer(httpServer: HttpServer): IO {
   })
 
   return io
+}
+
+// ─── Challenge resolution ─────────────────────────────────────────────────────
+
+function resolveChallenge(io: IO, room: Room) {
+  const ch = room.activeChallenge
+  if (!ch || ch.resolved) return
+
+  const likes = Object.values(ch.votes).filter((v) => v === 'like').length
+  const dislikes = Object.values(ch.votes).filter((v) => v === 'dislike').length
+  // Maioria simples; empate → mantém decisão da IA
+  const finalValid = likes > dislikes ? true : dislikes > likes ? false : ch.currentValid
+
+  // Aplica nos resultados do round atual
+  if (room.currentRound) {
+    const catResult = room.currentRound.results.find((r) => r.categoryId === ch.categoryId)
+    if (catResult) {
+      const answer = catResult.answers.find((a) => a.playerId === ch.playerId)
+      if (answer) {
+        answer.valid = finalValid
+        answer.points = finalValid
+          ? (catResult.answers.filter((a) => a.valid && a.answer.trim().toLowerCase() === answer.answer.trim().toLowerCase()).length > 1 ? 10 : 15)
+          : 0
+        answer.outcome = finalValid ? 'acerto' : 'matando_aula'
+        // Recalcula pontuações totais
+        for (const player of room.players) {
+          player.totalScore = room.rounds.reduce((sum, r) => {
+            return sum + r.results.reduce((s, c) => {
+              const a = c.answers.find((x) => x.playerId === player.id)
+              return s + (a?.points ?? 0)
+            }, 0)
+          }, 0)
+        }
+      }
+    }
+  }
+
+  ch.resolved = true
+  ch.finalValid = finalValid
+  setRoom(room)
+
+  io.to(room.code).emit('review:challenge:close', {
+    categoryId: ch.categoryId,
+    playerId: ch.playerId,
+    finalValid,
+    likes,
+    dislikes,
+  })
+  io.to(room.code).emit('review:results', room.currentRound?.results ?? [])
+  io.to(room.code).emit('scoreboard:update', room.players)
 }
 
 // ─── Game flow ────────────────────────────────────────────────────────────────

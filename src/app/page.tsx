@@ -236,6 +236,7 @@ function OpenRoomsList({ onSelect, onJoin }: { onSelect: (code: string) => void;
 function FormScreen({
   title,
   dogSrc,
+  showLogo,
   children,
   onBack,
   actionIconSrc,
@@ -247,6 +248,7 @@ function FormScreen({
 }: {
   title: string
   dogSrc: string
+  showLogo?: boolean
   children: React.ReactNode
   onBack: () => void
   actionIconSrc: string
@@ -265,7 +267,10 @@ function FormScreen({
 
       <div className="relative z-10 mx-auto flex w-full max-w-[420px] flex-1 flex-col gap-5 overflow-y-auto px-6 pb-32 pt-8">
         <div className="flex flex-col items-center gap-3">
-          <Image src={dogSrc} alt="" width={120} height={120} className="object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)]" />
+          {showLogo
+            ? <Image src="/logo.png" alt="STOP ADEDONHA" width={160} height={160} className="animate-pulse-logo object-contain" />
+            : <Image src={dogSrc} alt="" width={120} height={120} className="object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)]" />
+          }
           <h2 className="text-3xl font-extrabold text-[#F8E7BF]">{title}</h2>
         </div>
         {children}
@@ -289,6 +294,60 @@ function FormScreen({
         }
       />
     </main>
+  )
+}
+
+const TAGLINE_WORDS = ['O', 'jogo', 'de', 'STOP', 'mais', 'divertido!']
+const TOTAL_LETTERS = TAGLINE_WORDS.join('').length
+const CYCLE = 2.8
+
+function TaglineBanner() {
+  let idx = 0
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 8px', padding: '0 8px' }}>
+      {TAGLINE_WORDS.map((word, wi) => {
+        const isStop = word === 'STOP'
+        const size = isStop ? 44 : 30
+        return (
+          <div
+            key={wi}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isStop ? 3 : 2,
+              filter: isStop ? 'drop-shadow(0 0 6px rgba(255,107,107,0.7))' : undefined,
+            }}
+          >
+            {word.split('').map((ch, ci) => {
+              const delay = `${((idx++ / TOTAL_LETTERS) * CYCLE).toFixed(2)}s`
+              const l = ch.toLowerCase()
+              if (/[a-z]/.test(l)) {
+                return (
+                  <Image
+                    key={ci}
+                    src={`/icons/letra_${l}.png`}
+                    alt={ch}
+                    width={size}
+                    height={size}
+                    className="animate-letter-wave"
+                    style={{ objectFit: 'contain', display: 'block', animationDelay: delay }}
+                  />
+                )
+              }
+              return (
+                <span
+                  key={ci}
+                  className="animate-letter-wave"
+                  style={{ display: 'inline-block', color: '#FFD93D', fontWeight: 900, fontSize: 22, lineHeight: 1, animationDelay: delay }}
+                >
+                  {ch}
+                </span>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -406,6 +465,7 @@ export default function HomePage() {
       <FormScreen
         title="Criar Sala"
         dogSrc="/imagens/cachorra-home-2.png"
+        showLogo
         onBack={back}
         actionIconSrc="/icons/btn_jogar.png"
         actionLabel={loading ? 'CRIANDO' : 'CRIAR SALA'}
@@ -436,6 +496,7 @@ export default function HomePage() {
       <FormScreen
         title="Entrar na Sala"
         dogSrc="/imagens/cachorra-home-4.png"
+        showLogo
         onBack={back}
         actionIconSrc="/icons/btn_entrar_sala.png"
         actionLabel={loading ? 'ENTRANDO' : 'ENTRAR'}
@@ -523,13 +584,7 @@ export default function HomePage() {
             boxShadow: '0 10px 28px rgba(0,0,0,0.32)',
           }}
         >
-          <div className="flex items-center justify-center gap-2">
-            <span style={{ fontSize: 18 }}>🌸</span>
-            <p className="text-[1.5rem] font-extrabold leading-tight" style={{ color: '#F8E7BF' }}>
-              O jogo de <span style={{ color: '#F3B11F' }}>STOP</span> mais divertido!
-            </p>
-            <span style={{ fontSize: 18 }}>🌸</span>
-          </div>
+          <TaglineBanner />
         </div>
       </section>
 

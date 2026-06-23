@@ -60,6 +60,18 @@ export interface Round {
   stoppedBy: string | null
 }
 
+export interface ReviewChallenge {
+  categoryId: string
+  categoryLabel: string
+  playerId: string      // dono da resposta sendo questionada
+  nickname: string
+  answer: string
+  currentValid: boolean
+  votes: Record<string, 'like' | 'dislike'>  // voterId → voto
+  resolved: boolean
+  finalValid?: boolean
+}
+
 export interface Room {
   code: string
   phase: GamePhase
@@ -70,6 +82,7 @@ export interface Room {
   hostId: string
   createdAt: number
   usedLetters: string[]
+  activeChallenge?: ReviewChallenge | null
 }
 
 export interface ValidationRequest {

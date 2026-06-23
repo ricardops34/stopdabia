@@ -97,6 +97,15 @@ body {
   animation: pulse-logo 1.8s ease-in-out infinite;
 }
 
+@keyframes letter-wave {
+  0%, 18%, 100% { transform: scale(1) translateY(0); }
+  9% { transform: scale(1.4) translateY(-4px); }
+}
+
+.animate-letter-wave {
+  animation: letter-wave 2.8s ease-in-out infinite;
+}
+
 @keyframes float-dog {
   0%, 100% { transform: translateY(0px) rotate(-1deg); }
   50% { transform: translateY(-14px) rotate(1deg); }

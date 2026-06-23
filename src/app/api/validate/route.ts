@@ -3,7 +3,7 @@ import Groq from 'groq-sdk'
 import rules from '@/lib/game/rules.json'
 import type { AnswerOutcome } from '@/lib/game/types'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const getGroq = () => new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 interface AnswerInput {
   playerId: string
@@ -153,7 +153,7 @@ ${needsAI.map((a, i) => `${i + 1}. playerId="${a.playerId}" | "${a.answer}"`).jo
 {"results":[{"playerId":"...","outcome":"acerto|matando_aula|palavra_nao_existe"}]}`
 
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroq().chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },

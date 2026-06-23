@@ -34,6 +34,12 @@ export default function RoomPage({ params }: PageProps) {
   const [rematchCountdown, setRematchCountdown] = useState(20)
   const [rematchReady, setRematchReady] = useState(false)
   const [myId, setMyId] = useState('')
+  const [challenge, setChallenge] = useState<import('@/lib/game/types').ReviewChallenge | null>(null)
+  const [challengeVotes, setChallengeVotes] = useState<{ likes: number; dislikes: number; total: number } | null>(null)
+  const [myVote, setMyVote] = useState<'like' | 'dislike' | null>(null)
+  const [challengedPlayerId, setChallengedPlayerId] = useState<string | null>(null)
+  const [challengeResult, setChallengeResult] = useState<{ finalValid: boolean; likes: number; dislikes: number } | null>(null)
+  const [resolvedChallenges, setResolvedChallenges] = useState<Map<string, boolean>>(new Map())
   const [hintUsed, setHintUsed] = useState(false)
   const [hintLoading, setHintLoading] = useState(false)
   const [hintsMap, setHintsMap] = useState<Record<string, { word: string; explanation: string }>>({})
@@ -101,6 +107,11 @@ export default function RoomPage({ params }: PageProps) {
         playSfx('stop')
         stopTrack()
         setResults([])
+        setChallenge(null)
+        setChallengeResult(null)
+        setChallengedPlayerId(null)
+        setMyVote(null)
+        setResolvedChallenges(new Map())
       } else if (p === 'finished') {
         stopTrack()
       } else {
@@ -127,24 +138,52 @@ export default function RoomPage({ params }: PageProps) {
     socket.on('game:timer', (r) => setTimer(r))
     socket.on('game:stopped', (by) => setStoppedBy(by))
     socket.on('review:results', (r) => setResults(r))
+    socket.on('review:challenge:open', (ch) => {
+      setChallenge(ch)
+      setChallengeVotes({ likes: 0, dislikes: 0, total: 0 })
+      setMyVote(null)
+      setChallengeResult(null)
+    })
+    socket.on('review:challenge:votes', (v) => setChallengeVotes(v))
+    socket.on('review:challenge:close', ({ categoryId, playerId, finalValid, likes, dislikes }) => {
+      setChallengeResult({ finalValid, likes, dislikes })
+      setResolvedChallenges(prev => new Map(prev).set(`${categoryId}:${playerId}`, finalValid))
+      setTimeout(() => {
+        setChallenge(null)
+        setChallengeResult(null)
+        setChallengedPlayerId(null)
+        setMyVote(null)
+      }, 3000)
+    })
     socket.on('scoreboard:update', (ps) => setPlayers(ps))
-    socket.on('room:error', (msg) => setError(msg))
+    socket.on('room:error', (msg) => {
+      if (!roomReceived.current) {
+        redirectHome(msg + ' Redirecionando…')
+      } else {
+        setError(msg)
+      }
+    })
     socket.on('rematch:countdown', (s) => setRematchCountdown(s))
 
     let syncAttempts = 0
     let syncTimer: ReturnType<typeof setTimeout> | null = null
 
+    function redirectHome(msg: string) {
+      setError(msg)
+      setTimeout(() => router.push('/'), 2500)
+    }
+
     function tryReconnect() {
       if (roomReceived.current) return
       try {
         const raw = sessionStorage.getItem('stop_session')
-        if (!raw) { setError('Sessão expirada. Volte ao início.'); return }
+        if (!raw) { redirectHome('Sala não encontrada. Redirecionando…'); return }
         const { code: sCode, nickname } = JSON.parse(raw) as { code: string; nickname: string }
         socket.emit('room:reconnect', sCode, nickname, (ok) => {
-          if (!ok) setError('Sala não encontrada. Ela pode ter encerrado.')
+          if (!ok) redirectHome('Sala não encontrada. Redirecionando…')
         })
       } catch {
-        setError('Não foi possível conectar à sala.')
+        redirectHome('Não foi possível conectar à sala. Redirecionando…')
       }
     }
 
@@ -345,6 +384,31 @@ export default function RoomPage({ params }: PageProps) {
           maxRounds={room?.settings.maxRounds ?? 5}
           currentRound={room?.rounds.length ?? 0}
           hintsMap={hintsMap}
+          activeChallenge={challenge}
+          myVote={myVote}
+          challengedPlayerId={challengedPlayerId}
+          resolvedChallenges={resolvedChallenges}
+          onChallenge={(categoryId, playerId, initialVote) => {
+            setMyVote(initialVote)
+            setChallengedPlayerId(playerId)
+            connectSocket().emit('review:challenge', { categoryId, playerId, initialVote })
+          }}
+        />
+      )}
+
+      {/* Overlay de enquete — aparece para todos durante o questionamento */}
+      {challenge && (
+        <ChallengeOverlay
+          challenge={challenge}
+          votes={challengeVotes}
+          myVote={myVote}
+          myId={myId}
+          myNickname={players.find(p => p.id === myId)?.nickname ?? ''}
+          result={challengeResult}
+          onVote={(v) => {
+            setMyVote(v)
+            connectSocket().emit('review:vote', { vote: v })
+          }}
         />
       )}
 
@@ -385,6 +449,14 @@ function LobbyView({
   const [selectedCats, setSelectedCats] = useState<string[]>(
     room?.settings.categories.map((c) => c.id) ?? ALL_CATEGORIES.slice(0, 6).map((c) => c.id),
   )
+  // Sincroniza selectedCats quando o host remoto atualiza as categorias (não-host e reconexão)
+  const roomCatIds = room?.settings.categories.map((c) => c.id).join(',') ?? ''
+  useEffect(() => {
+    if (!isHost && room?.settings.categories) {
+      setSelectedCats(room.settings.categories.map((c) => c.id))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCatIds, isHost])
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const [showCats, setShowCats] = useState(false)
 
@@ -427,7 +499,7 @@ function LobbyView({
       {/* Cabeçalho fixo */}
       <div className="shrink-0 flex items-center justify-center pt-4 pb-2 px-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="STOP - ADEDONHA" width={120} style={{ height: 'auto', display: 'block' }} />
+        <img src="/logo.png" alt="STOP - ADEDONHA" width={120} className="animate-pulse-logo" style={{ height: 'auto', display: 'block' }} />
       </div>
 
       {/* Conteúdo com scroll */}
@@ -768,6 +840,125 @@ function PlayingView({
   )
 }
 
+// ─── Challenge overlay ────────────────────────────────────────────────────────
+
+function ChallengeOverlay({
+  challenge, votes, myVote, myId, myNickname, result, onVote,
+}: {
+  challenge: import('@/lib/game/types').ReviewChallenge
+  votes: { likes: number; dislikes: number; total: number } | null
+  myVote: 'like' | 'dislike' | null
+  myId: string
+  myNickname: string
+  result: { finalValid: boolean; likes: number; dislikes: number } | null
+  onVote: (v: 'like' | 'dislike') => void
+}) {
+  // Verifica por ID E por nickname (ID pode mudar após reconexão)
+  const isAuthor = myId === challenge.playerId || myNickname === challenge.nickname
+  const likes = votes?.likes ?? 0
+  const dislikes = votes?.dislikes ?? 0
+  const total = votes?.total ?? 1
+  const voted = votes ? likes + dislikes : 0
+  const [countdown, setCountdown] = useState(12)
+  useEffect(() => {
+    if (result) return
+    const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(t)
+  }, [result])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in"
+      style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+    >
+      <div
+        className="w-full max-w-sm mx-4 rounded-3xl p-6 flex flex-col items-center gap-4 animate-slide-up"
+        style={{ backgroundColor: '#0F3460', border: '2px solid #FFD93D' }}
+      >
+        <p className="text-xs font-bold uppercase tracking-widest opacity-60">Enquete — Questionar Resposta</p>
+
+        <div className="w-full rounded-2xl p-4 flex flex-col gap-1 text-center" style={{ backgroundColor: '#16213E' }}>
+          <span className="text-xs opacity-50">{challenge.nickname} respondeu em {challenge.categoryLabel}:</span>
+          <span className="text-3xl font-black" style={{ color: '#FFD93D' }}>{challenge.answer}</span>
+          <span className="text-xs opacity-40" style={{ color: challenge.currentValid ? '#95E06C' : '#FF6B6B' }}>
+            IA: {challenge.currentValid ? '✓ Válida' : '✗ Inválida'}
+          </span>
+        </div>
+
+        {result ? (
+          <div className="flex flex-col items-center gap-3 w-full">
+            <Image
+              src={result.finalValid ? '/aviso/acerto.png' : '/aviso/da_zero.png'}
+              alt=""
+              width={120}
+              height={120}
+              style={{ objectFit: 'contain' }}
+            />
+            <span
+              className="text-3xl font-black animate-letter-enter"
+              style={{ color: result.finalValid ? '#95E06C' : '#FF6B6B' }}
+            >
+              {result.finalValid ? 'APROVADA!' : 'REPROVADA!'}
+            </span>
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <Image src="/icons/btn_like.png" alt="" width={24} height={24} style={{ objectFit: 'contain' }} />
+                <span className="font-black text-lg" style={{ color: '#95E06C' }}>{result.likes}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Image src="/icons/btn_dislike.png" alt="" width={24} height={24} style={{ objectFit: 'contain' }} />
+                <span className="font-black text-lg" style={{ color: '#FF6B6B' }}>{result.dislikes}</span>
+              </div>
+            </div>
+          </div>
+        ) : isAuthor ? (
+          <p className="text-sm font-bold opacity-50 text-center px-4">
+            Aguarde enquanto os outros jogadores votam na sua resposta…
+          </p>
+        ) : (
+          <>
+            <p className="text-sm font-bold opacity-70">O que você acha desta resposta?</p>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => !myVote && onVote('like')}
+                disabled={!!myVote}
+                className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl active:scale-95 transition-all"
+                style={{
+                  backgroundColor: myVote === 'like' ? '#95E06C22' : '#16213E',
+                  border: myVote === 'like' ? '2px solid #95E06C' : '2px solid rgba(255,255,255,0.1)',
+                  opacity: myVote && myVote !== 'like' ? 0.4 : 1,
+                }}
+              >
+                <Image src="/icons/btn_like.png" alt="Aprovar" width={48} height={48} style={{ objectFit: 'contain' }} />
+                <span className="text-xs font-bold" style={{ color: '#95E06C' }}>APROVAR</span>
+                <span className="text-lg font-black" style={{ color: '#95E06C' }}>{likes}</span>
+              </button>
+
+              <button
+                onClick={() => !myVote && onVote('dislike')}
+                disabled={!!myVote}
+                className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl active:scale-95 transition-all"
+                style={{
+                  backgroundColor: myVote === 'dislike' ? '#FF6B6B22' : '#16213E',
+                  border: myVote === 'dislike' ? '2px solid #FF6B6B' : '2px solid rgba(255,255,255,0.1)',
+                  opacity: myVote && myVote !== 'dislike' ? 0.4 : 1,
+                }}
+              >
+                <Image src="/icons/btn_dislike.png" alt="Reprovar" width={48} height={48} style={{ objectFit: 'contain' }} />
+                <span className="text-xs font-bold" style={{ color: '#FF6B6B' }}>REPROVAR</span>
+                <span className="text-lg font-black" style={{ color: '#FF6B6B' }}>{dislikes}</span>
+              </button>
+            </div>
+
+            <p className="text-xs opacity-40">{voted}/{total} votaram · encerra em {countdown}s</p>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Review ──────────────────────────────────────────────────────────────────
 
 interface ReviewCategoryCardProps {
@@ -780,9 +971,15 @@ interface ReviewCategoryCardProps {
   onPrev: (() => void) | null
   onNext: () => void
   hintInfo?: { word: string; explanation: string }
+  onChallenge: (playerId: string, initialVote: 'like' | 'dislike') => void
+  activeChallenge: import('@/lib/game/types').ReviewChallenge | null
+  myVote: 'like' | 'dislike' | null
+  challengedPlayerId: string | null
+  resolvedChallenges: Map<string, boolean>
+  currentCategoryId: string
 }
 
-function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo }: ReviewCategoryCardProps) {
+function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo, onChallenge, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, currentCategoryId }: ReviewCategoryCardProps) {
   const sortedAnswers = [...cat.answers].sort((a, b) => {
     if (a.playerId === myId) return -1
     if (b.playerId === myId) return 1
@@ -839,11 +1036,58 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
                   </div>
                 )}
               </div>
-              <div className="flex flex-col items-center gap-1 shrink-0">
-                <Image src={getAviso(a, letter, idx + ai)} alt="" width={100} height={100} style={{ objectFit: 'contain' }} />
-                <span className="font-bold text-base" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
-                  {a.points > 0 ? `+${a.points}` : '0'}
-                </span>
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Aviso + pontos */}
+                {(() => {
+                  const resolvedKey = `${currentCategoryId}:${a.playerId}`
+                  const resolvedValid = resolvedChallenges.get(resolvedKey)
+                  const avisoSrc = resolvedValid !== undefined
+                    ? (resolvedValid ? '/aviso/acerto.png' : '/aviso/da_zero.png')
+                    : getAviso(a, letter, idx + ai)
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <Image src={avisoSrc} alt="" width={90} height={90} style={{ objectFit: 'contain' }} />
+                      <span className="font-bold text-base" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
+                        {a.points > 0 ? `+${a.points}` : '0'}
+                      </span>
+                    </div>
+                  )
+                })()}
+                {/* Botões de votação verticais — só para respostas de outros jogadores ainda não votadas */}
+                {a.answer && !isMe && !resolvedChallenges.has(`${currentCategoryId}:${a.playerId}`) && (
+                  <div className="flex flex-col gap-2">
+                    {(['like', 'dislike'] as const).map((vote) => {
+                      const isSelected = challengedPlayerId === a.playerId && myVote === vote
+                      return (
+                        <button
+                          key={vote}
+                          onClick={() => onChallenge(a.playerId, vote)}
+                          className="active:scale-90 transition-transform"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            outline: isSelected
+                              ? `3px solid ${vote === 'like' ? '#95E06C' : '#FF6B6B'}`
+                              : 'none',
+                            outlineOffset: isSelected ? 3 : 0,
+                            borderRadius: 10,
+                          }}
+                          title={vote === 'like' ? 'Apoiar' : 'Questionar'}
+                        >
+                          <Image
+                            src={`/icons/btn_${vote}.png`}
+                            alt={vote}
+                            width={44}
+                            height={44}
+                            style={{ objectFit: 'contain', display: 'block' }}
+                          />
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )
@@ -872,7 +1116,7 @@ function getAviso(answer: PlayerAnswer, letter: string, idx = 0): string {
 }
 
 function ReviewView({
-  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound, hintsMap,
+  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound, hintsMap, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, onChallenge,
 }: {
   letter: string
   results: CategoryResult[]
@@ -885,6 +1129,11 @@ function ReviewView({
   maxRounds: number
   currentRound: number
   hintsMap: Record<string, { word: string; explanation: string }>
+  activeChallenge: import('@/lib/game/types').ReviewChallenge | null
+  myVote: 'like' | 'dislike' | null
+  challengedPlayerId: string | null
+  resolvedChallenges: Map<string, boolean>
+  onChallenge: (categoryId: string, playerId: string, initialVote: 'like' | 'dislike') => void
 }) {
   const [idx, setIdx] = useState(0)
   const [step, setStep] = useState<'words' | 'summary'>('words')
@@ -925,6 +1174,12 @@ function ReviewView({
         onPrev={goBack}
         onNext={advance}
         hintInfo={hintsMap[cat.categoryId]}
+        onChallenge={(playerId, iv) => onChallenge(cat.categoryId, playerId, iv)}
+        activeChallenge={activeChallenge}
+        myVote={myVote}
+        challengedPlayerId={challengedPlayerId}
+        resolvedChallenges={resolvedChallenges}
+        currentCategoryId={cat.categoryId}
       />
     )
   }
@@ -1086,22 +1341,24 @@ function getPositionAviso(index: number, total: number): string | null {
   return null
 }
 
-function FinishedView({ players, isHost, onHome, onRematch }: { players: Player[]; isHost: boolean; onHome: () => void; onRematch: () => void }) {
+function FinishedView({ players, myId, isHost, onHome, onRematch }: { players: Player[]; myId: string; isHost: boolean; onHome: () => void; onRematch: () => void }) {
   const winner = players[0]
 
   // Detecta empates no topo
   const tiedAtTop = players.filter(p => p.totalScore === winner?.totalScore)
   const hasTie = tiedAtTop.length > 1
 
-  // Critério de desempate: quem tiver mais respostas únicas (15 pts) ao longo das rodadas
-  // Aproximação: mais rodadas acima de 0 pts
   const tiebreakNote = hasTie
     ? `Empate! Critério de desempate: número de acertos únicos (respostas exclusivas valem 15 pts).`
     : null
 
+  // Aviso personalizado para o jogador atual
+  const myIdx = players.findIndex(p => p.id === myId)
+  const myAviso = myIdx >= 0 ? (getPositionAviso(myIdx, players.length) ?? '/aviso/acerto.png') : '/aviso/vencedor.png'
+
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-md mx-auto w-full" style={{ paddingBottom: 96 }}>
-      <Image src="/aviso/vencedor.png" alt="Vencedor!" width={180} height={180} className="animate-letter-enter" />
+      <Image src={myAviso} alt="" width={180} height={180} className="animate-letter-enter" />
       <h2 className="text-3xl font-bold text-center" style={{ color: '#FFD93D' }}>
         {hasTie
           ? `${tiedAtTop.map(p => p.nickname).join(' e ')} empataram!`

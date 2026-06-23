@@ -13,8 +13,8 @@ async function main() {
   const httpServer = createServer((req, res) => handle(req, res))
   attachSocketServer(httpServer)
 
-  httpServer.listen(port, () => {
-    console.log(`> Ready on http://localhost:${port}`)
+  httpServer.listen(port, '0.0.0.0', () => {
+    console.log(`> Ready on http://0.0.0.0:${port}`)
   })
 }
 
