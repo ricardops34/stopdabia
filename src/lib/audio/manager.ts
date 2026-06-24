@@ -5,17 +5,17 @@ import { Howl, Howler } from 'howler'
 type Track = 'home' | 'game' | 'review'
 type Sfx = 'stop' | 'acerto' | 'erro' | 'countdown'
 
-const TRACKS: Record<Track, string> = {
-  home:   '/audio/home.wav',
-  game:   '/audio/game.wav',
-  review: '/audio/review.wav',
+const TRACKS: Record<Track, string[]> = {
+  home:   ['/audio/home.mp3',   '/audio/home.wav'],
+  game:   ['/audio/game.mp3',   '/audio/game.wav'],
+  review: ['/audio/review.mp3', '/audio/review.wav'],
 }
 
-const SFX_PATHS: Record<Sfx, string> = {
-  stop:      '/audio/stop.wav',
-  acerto:    '/audio/acerto.wav',
-  erro:      '/audio/erro.wav',
-  countdown: '/audio/countdown.wav',
+const SFX_PATHS: Record<Sfx, string[]> = {
+  stop:      ['/audio/stop.mp3',      '/audio/stop.wav'],
+  acerto:    ['/audio/acerto.mp3',    '/audio/acerto.wav'],
+  erro:      ['/audio/erro.mp3',      '/audio/erro.wav'],
+  countdown: ['/audio/countdown.mp3', '/audio/countdown.wav'],
 }
 
 let currentTrack: Track | null = null
@@ -24,7 +24,7 @@ const sfxCache: Partial<Record<Sfx, Howl>> = {}
 
 function loadSfx(name: Sfx): Howl {
   if (!sfxCache[name]) {
-    sfxCache[name] = new Howl({ src: [SFX_PATHS[name]], volume: 0.7, preload: true })
+    sfxCache[name] = new Howl({ src: SFX_PATHS[name], volume: 0.7, preload: true })
   }
   return sfxCache[name]!
 }
@@ -34,10 +34,10 @@ export function playTrack(name: Track, volume = 0.35) {
   stopTrack()
   currentTrack = name
   currentHowl = new Howl({
-    src: [TRACKS[name]],
+    src: TRACKS[name],
     loop: true,
     volume,
-    html5: true, // streaming — não bloqueia
+    html5: true,
   })
   currentHowl.play()
 }
@@ -57,7 +57,6 @@ export function setMuted(muted: boolean) {
 }
 
 export function getMuted(): boolean {
-  // Howler não expõe getter direto — usa localStorage como fonte da verdade
   if (typeof window === 'undefined') return false
   return localStorage.getItem('audio_muted') === '1'
 }

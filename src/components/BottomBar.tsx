@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import { getMuted, setMuted } from '@/lib/audio/manager'
 
@@ -91,6 +91,35 @@ function ButtonIcon({
 }
 
 export default function BottomBar({ left, center, right, spread }: BottomBarProps) {
+  const footerRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    let raf = 0
+
+    const update = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        if (!footerRef.current) return
+        // vv.height shrinks when keyboard opens; window.innerHeight stays fixed
+        const keyboardHeight = Math.max(0, window.innerHeight - vv.height)
+        footerRef.current.style.bottom = `${keyboardHeight}px`
+      })
+    }
+
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    update()
+
+    return () => {
+      cancelAnimationFrame(raf)
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
   const footerStyle: React.CSSProperties = {
     height: 76,
     backgroundColor: '#0a1628',
@@ -99,11 +128,12 @@ export default function BottomBar({ left, center, right, spread }: BottomBarProp
     backgroundRepeat: 'repeat-x',
     backgroundSize: 'cover',
     borderTop: '1.5px solid rgba(255,255,255,0.08)',
+    transition: 'bottom 0.15s ease-out',
   }
 
   if (spread) {
     return (
-      <footer className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
+      <footer ref={footerRef} className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
         <div className="mx-auto flex w-full h-full max-w-[460px] items-center justify-center gap-4 px-3">
           {center}
           <MuteToggle />
@@ -113,7 +143,7 @@ export default function BottomBar({ left, center, right, spread }: BottomBarProp
   }
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
+    <footer ref={footerRef} className="fixed bottom-0 left-0 right-0 z-40" style={footerStyle}>
       <div className="mx-auto flex w-full h-full max-w-[460px] items-center justify-center gap-3 px-2">
         {left && <div className="flex items-center" style={{ flexShrink: 0 }}>{left}</div>}
         <div className="flex items-center justify-center gap-3">

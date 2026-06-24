@@ -307,7 +307,7 @@ function TaglineBanner() {
     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 8px', padding: '0 8px' }}>
       {TAGLINE_WORDS.map((word, wi) => {
         const isStop = word === 'STOP'
-        const size = isStop ? 44 : 30
+        const size = isStop ? 34 : 24
         return (
           <div
             key={wi}
@@ -338,7 +338,7 @@ function TaglineBanner() {
                 <span
                   key={ci}
                   className="animate-letter-wave"
-                  style={{ display: 'inline-block', color: '#FFD93D', fontWeight: 900, fontSize: 22, lineHeight: 1, animationDelay: delay }}
+                  style={{ display: 'inline-block', color: '#FFD93D', fontWeight: 900, fontSize: 18, lineHeight: 1, animationDelay: delay }}
                 >
                   {ch}
                 </span>
@@ -542,7 +542,7 @@ export default function HomePage() {
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
       </div>
 
-      <div style={{ position: 'absolute', right: 16, top: 16, zIndex: 20 }}>
+      <div style={{ position: 'absolute', right: 16, top: 14, zIndex: 20 }}>
         <LoginBadge
           user={user}
           avatarPath={avatar}
@@ -553,7 +553,7 @@ export default function HomePage() {
       </div>
 
       <section
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '8px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '68px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
       >
         {/* Logo */}
         <Image
@@ -562,7 +562,7 @@ export default function HomePage() {
           width={390}
           height={280}
           className="animate-pulse-logo"
-          style={{ maxHeight: 'min(30vh, 220px)', width: '100%', objectFit: 'contain', flexShrink: 0 }}
+          style={{ maxHeight: 'min(22vh, 165px)', width: '100%', objectFit: 'contain', flexShrink: 0 }}
           priority
         />
 
@@ -582,7 +582,7 @@ export default function HomePage() {
           style={{
             width: '100%',
             borderRadius: 24,
-            padding: '12px 16px',
+            padding: '10px 14px',
             textAlign: 'center',
             backgroundColor: 'rgba(8,19,36,0.93)',
             border: '2px solid rgba(255,217,61,0.22)',

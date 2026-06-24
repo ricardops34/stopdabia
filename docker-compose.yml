@@ -28,7 +28,7 @@ services:
         - traefik.http.routers.stop-adedonha.rule=Host(`adedonha.bjsoft.com.br`)
         - traefik.http.routers.stop-adedonha.entrypoints=websecure
         - traefik.http.routers.stop-adedonha.tls=true
-        - traefik.http.routers.stop-adedonha.tls.certresolver=letsencrypt
+        - traefik.http.routers.stop-adedonha.tls.certresolver=letsencryptresolver
 
         # Serviço interno (Traefik já suporta WebSocket nativamente)
         - traefik.http.services.stop-adedonha.loadbalancer.server.port=3000

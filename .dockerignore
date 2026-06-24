@@ -12,5 +12,4 @@ docs/
 tsconfig.tsbuildinfo
 vitest.config.ts
 eslint.config.mjs
-postcss.config.mjs
 process_banners.js
