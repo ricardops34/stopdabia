@@ -2,54 +2,22 @@
 
 import { Howl, Howler } from 'howler'
 
-type Track = 'home' | 'game' | 'review'
-type Sfx = 'stop' | 'acerto' | 'erro' | 'countdown'
+let howl: Howl | null = null
+let started = false
 
-const TRACKS: Record<Track, string[]> = {
-  home:   ['/audio/home.mp3',   '/audio/home.wav'],
-  game:   ['/audio/game.mp3',   '/audio/game.wav'],
-  review: ['/audio/review.mp3', '/audio/review.wav'],
-}
-
-const SFX_PATHS: Record<Sfx, string[]> = {
-  stop:      ['/audio/stop.mp3',      '/audio/stop.wav'],
-  acerto:    ['/audio/acerto.mp3',    '/audio/acerto.wav'],
-  erro:      ['/audio/erro.mp3',      '/audio/erro.wav'],
-  countdown: ['/audio/countdown.mp3', '/audio/countdown.wav'],
-}
-
-let currentTrack: Track | null = null
-let currentHowl: Howl | null = null
-const sfxCache: Partial<Record<Sfx, Howl>> = {}
-
-function loadSfx(name: Sfx): Howl {
-  if (!sfxCache[name]) {
-    sfxCache[name] = new Howl({ src: SFX_PATHS[name], volume: 0.7, preload: true })
-  }
-  return sfxCache[name]!
-}
-
-export function playTrack(name: Track, volume = 0.35) {
-  if (currentTrack === name) return
-  stopTrack()
-  currentTrack = name
-  currentHowl = new Howl({
-    src: TRACKS[name],
+export function startMusic() {
+  if (started) return
+  started = true
+  howl = new Howl({
+    src: ['/audio/musica.mp3', '/audio/musica.wav'],
     loop: true,
-    volume,
+    volume: 0.35,
     html5: true,
   })
-  currentHowl.play()
-}
-
-export function stopTrack() {
-  currentHowl?.fade(currentHowl.volume(), 0, 400)
-  setTimeout(() => { currentHowl?.stop(); currentHowl = null }, 420)
-  currentTrack = null
-}
-
-export function playSfx(name: Sfx) {
-  try { loadSfx(name).play() } catch { /* arquivo ausente — silencioso */ }
+  if (typeof window !== 'undefined') {
+    Howler.mute(localStorage.getItem('audio_muted') === '1')
+  }
+  howl.play()
 }
 
 export function setMuted(muted: boolean) {

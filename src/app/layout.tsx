@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import MuteButton from '@/components/MuteButton'
 import SplashScreen from '@/components/SplashScreen'
+import MusicAutoStart from '@/components/MusicAutoStart'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-startup-image" href="/logo.png" />
       </head>
       <body style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#0a1628' }}>
+        <MusicAutoStart />
         <SplashScreen>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
             {children}

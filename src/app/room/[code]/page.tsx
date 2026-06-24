@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { connectSocket } from '@/lib/socket/client'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
-import { playTrack, playSfx, stopTrack } from '@/lib/audio/manager'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { Room, Player, CategoryResult, Category, PlayerAnswer } from '@/lib/game/types'
 import { ALL_CATEGORIES } from '@/lib/game/config'
@@ -77,7 +76,6 @@ export default function RoomPage({ params }: PageProps) {
       if (p === 'rematch') {
         setRematchCountdown(20)
         setRematchReady(false)
-        stopTrack()
       }
       if (p === 'playing') {
         sentAnswers.current = false
@@ -85,13 +83,11 @@ export default function RoomPage({ params }: PageProps) {
         setAnswers({})
         setStoppedBy(null)
         setShowDemora(false)
-        playTrack('game', 0.35)
         demoraTimer.current = setTimeout(() => {
           const hasAnswer = Object.values(answersRef.current).some((a) => a.trim() !== '')
           if (!hasAnswer) setShowDemora(true)
         }, 10000)
       } else if (p === 'review') {
-        playTrack('review', 0.3)
         // Easter egg: 20% de chance — determinístico pela letra para todos verem igual
         setEasterEgg((prev) => {
           const letterCode = letter.charCodeAt(0)
@@ -104,16 +100,12 @@ export default function RoomPage({ params }: PageProps) {
           return prev
         })
       } else if (p === 'stopping') {
-        playSfx('stop')
-        stopTrack()
         setResults([])
         setChallenge(null)
         setChallengeResult(null)
         setChallengedPlayerId(null)
         setMyVote(null)
         setResolvedChallenges(new Map())
-      } else if (p === 'finished') {
-        stopTrack()
       } else {
         setShowDemora(false)
         if (demoraTimer.current) clearTimeout(demoraTimer.current)
@@ -831,7 +823,7 @@ function PlayingView({
               color={hintUsed ? 'rgba(255,255,255,0.05)' : 'rgba(255,217,61,0.15)'}
               disabled={hintUsed || hintLoading}
             />
-            <BtnPrimary onClick={onStop} label="STOP!" pulse />
+            <BtnPrimary onClick={onStop} iconSrc="/icons/btn_stop.png" label="STOP!" pulse size={64} />
           </>
         }
         right={<BtnSecondary onClick={() => setCatIdx((i) => i + 1)} iconSrc="/icons/btn_proxima.png" label="PRÓXIMA" disabled={isLast} />}

@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { ALL_CATEGORIES, drawLetter, DEFAULT_CATEGORIES } from '@/lib/game/config'
 import type { Category } from '@/lib/game/types'
 import { computeCategoryScores } from '@/lib/game/scoring'
-import { playTrack, stopTrack } from '@/lib/audio/manager'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { AnswerOutcome } from '@/lib/game/types'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
@@ -424,7 +423,6 @@ export default function SoloPage() {
     setCountdown(null)
     setTimer(selectedTime)
     setPhase('playing')
-    playTrack('game', 0.35)
 
     // timer decrescente
     let remaining = selectedTime
@@ -512,7 +510,6 @@ export default function SoloPage() {
       setReviewIdx(0)
       setReviewStep('words')
       setPhase('review')
-      playTrack('review', 0.3)
 
       // Persiste no Redis via API
       const total = allResults.reduce((s, r) => s + r.points, 0)

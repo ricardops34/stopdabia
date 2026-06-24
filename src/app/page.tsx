@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
-import { playTrack } from '@/lib/audio/manager'
 import { connectSocket } from '@/lib/socket/client'
 import { signInWithGoogle, signOut } from '@/lib/supabase/auth'
 import { createClient, supabaseConfigured } from '@/lib/supabase/client'
@@ -364,7 +363,6 @@ export default function HomePage() {
 
   useEffect(() => {
     setCachorra(Math.floor(Math.random() * 5) + 1)
-    playTrack('home', 0.3)
 
     const saved = localStorage.getItem('stop_player')
     if (saved) {
