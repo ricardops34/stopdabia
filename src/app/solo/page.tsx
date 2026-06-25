@@ -8,6 +8,7 @@ import type { Category } from '@/lib/game/types'
 import { computeCategoryScores } from '@/lib/game/scoring'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { AnswerOutcome } from '@/lib/game/types'
+import { playEasterEgg } from '@/lib/audio/manager'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
 
 type SoloPhase = 'trail' | 'config' | 'letter' | 'countdown' | 'playing' | 'interlude' | 'review' | 'result'
@@ -355,12 +356,14 @@ export default function SoloPage() {
   const answersRef = useRef<Record<string, string>>({})
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const demoraRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const easterIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const letterRef = useRef('')
   const progressKeyRef = useRef('')
 
   function clearAllTimers() {
     if (timerRef.current) clearTimeout(timerRef.current)
     if (demoraRef.current) clearTimeout(demoraRef.current)
+    if (easterIntervalRef.current) { clearInterval(easterIntervalRef.current); easterIntervalRef.current = null }
   }
 
   // ─── Início do jogo ──────────────────────────────────────────────────────
@@ -403,6 +406,7 @@ export default function SoloPage() {
     if (Math.random() < 0.2) {
       const n = Math.floor(Math.random() * 10) + 1
       setEasterEgg(`/easter/${n}.png`)
+      playEasterEgg()
       setTimeout(() => setEasterEgg(null), 3000)
     }
     let count = 3
@@ -442,6 +446,11 @@ export default function SoloPage() {
       const hasAny = Object.values(answersRef.current).some((a) => a.trim())
       if (!hasAny) setShowDemora(true)
     }, 10000)
+
+    // easter egg de áudio aleatório durante a partida
+    easterIntervalRef.current = setInterval(() => {
+      if (Math.random() < 0.25) playEasterEgg()
+    }, 20000)
   }
 
   const endRound = useCallback(() => {

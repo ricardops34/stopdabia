@@ -260,6 +260,7 @@ export function attachSocketServer(httpServer: HttpServer): IO {
       if (!room || room.phase !== 'review') return
       if (socket.id === playerId) return // dono não pode questionar a própria resposta
       if (room.activeChallenge && !room.activeChallenge.resolved) return // já tem enquete ativa
+      if (room.players.filter((p) => !p.spectating).length <= 2) return // precisa de 3+ jogadores
 
       const catResult = room.currentRound?.results.find((r) => r.categoryId === categoryId)
       if (!catResult) return

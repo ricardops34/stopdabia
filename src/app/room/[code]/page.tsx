@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { connectSocket } from '@/lib/socket/client'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
+import { playEasterEgg } from '@/lib/audio/manager'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { Room, Player, CategoryResult, Category, PlayerAnswer } from '@/lib/game/types'
 import { ALL_CATEGORIES } from '@/lib/game/config'
@@ -47,6 +48,7 @@ export default function RoomPage({ params }: PageProps) {
   const answersRef = useRef<Record<string, string>>({})
   const sentAnswers = useRef(false)
   const demoraTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const easterInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const [easterEgg, setEasterEgg] = useState<string | null>(null)
 
   useEffect(() => {
@@ -87,13 +89,21 @@ export default function RoomPage({ params }: PageProps) {
           const hasAnswer = Object.values(answersRef.current).some((a) => a.trim() !== '')
           if (!hasAnswer) setShowDemora(true)
         }, 10000)
-      } else if (p === 'review') {
+        if (easterInterval.current) clearInterval(easterInterval.current)
+        easterInterval.current = setInterval(() => {
+          if (Math.random() < 0.25) playEasterEgg()
+        }, 20000)
+      } else {
+        if (easterInterval.current) { clearInterval(easterInterval.current); easterInterval.current = null }
+      }
+      if (p === 'review') {
         // Easter egg: 20% de chance — determinístico pela letra para todos verem igual
         setEasterEgg((prev) => {
           const letterCode = letter.charCodeAt(0)
           if (letterCode % 5 === 0) {
             const n = (letterCode % 13) + 1
             const padded = String(n).padStart(2, '0')
+            playEasterEgg()
             setTimeout(() => setEasterEgg(null), 3000)
             return `/easter/easter_egg_${padded}.png`
           }
@@ -211,6 +221,7 @@ export default function RoomPage({ params }: PageProps) {
       socket.off('room:error')
       socket.off('rematch:countdown')
       if (demoraTimer.current) clearTimeout(demoraTimer.current)
+      if (easterInterval.current) clearInterval(easterInterval.current)
     }
   }, [])
 
@@ -380,6 +391,7 @@ export default function RoomPage({ params }: PageProps) {
           myVote={myVote}
           challengedPlayerId={challengedPlayerId}
           resolvedChallenges={resolvedChallenges}
+          canChallenge={players.filter((p) => !p.spectating).length > 2}
           onChallenge={(categoryId, playerId, initialVote) => {
             setMyVote(initialVote)
             setChallengedPlayerId(playerId)
@@ -964,6 +976,7 @@ interface ReviewCategoryCardProps {
   onNext: () => void
   hintInfo?: { word: string; explanation: string }
   onChallenge: (playerId: string, initialVote: 'like' | 'dislike') => void
+  canChallenge: boolean
   activeChallenge: import('@/lib/game/types').ReviewChallenge | null
   myVote: 'like' | 'dislike' | null
   challengedPlayerId: string | null
@@ -971,7 +984,7 @@ interface ReviewCategoryCardProps {
   currentCategoryId: string
 }
 
-function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo, onChallenge, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, currentCategoryId }: ReviewCategoryCardProps) {
+function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo, onChallenge, canChallenge, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, currentCategoryId }: ReviewCategoryCardProps) {
   const sortedAnswers = [...cat.answers].sort((a, b) => {
     if (a.playerId === myId) return -1
     if (b.playerId === myId) return 1
@@ -1045,8 +1058,8 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
                     </div>
                   )
                 })()}
-                {/* Botões de votação verticais — só para respostas de outros jogadores ainda não votadas */}
-                {a.answer && !isMe && !resolvedChallenges.has(`${currentCategoryId}:${a.playerId}`) && (
+                {/* Botões de votação verticais — só com 3+ jogadores e para respostas de outros ainda não votadas */}
+                {canChallenge && a.answer && !isMe && !resolvedChallenges.has(`${currentCategoryId}:${a.playerId}`) && (
                   <div className="flex flex-col gap-2">
                     {(['like', 'dislike'] as const).map((vote) => {
                       const isSelected = challengedPlayerId === a.playerId && myVote === vote
@@ -1108,7 +1121,7 @@ function getAviso(answer: PlayerAnswer, letter: string, idx = 0): string {
 }
 
 function ReviewView({
-  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound, hintsMap, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, onChallenge,
+  letter, results, players, myId, stoppedBy, phase, isHost, onNext, maxRounds, currentRound, hintsMap, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, onChallenge, canChallenge,
 }: {
   letter: string
   results: CategoryResult[]
@@ -1126,6 +1139,7 @@ function ReviewView({
   challengedPlayerId: string | null
   resolvedChallenges: Map<string, boolean>
   onChallenge: (categoryId: string, playerId: string, initialVote: 'like' | 'dislike') => void
+  canChallenge: boolean
 }) {
   const [idx, setIdx] = useState(0)
   const [step, setStep] = useState<'words' | 'summary'>('words')
@@ -1167,6 +1181,7 @@ function ReviewView({
         onNext={advance}
         hintInfo={hintsMap[cat.categoryId]}
         onChallenge={(playerId, iv) => onChallenge(cat.categoryId, playerId, iv)}
+        canChallenge={canChallenge}
         activeChallenge={activeChallenge}
         myVote={myVote}
         challengedPlayerId={challengedPlayerId}
