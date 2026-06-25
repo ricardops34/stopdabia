@@ -19,7 +19,7 @@
 
 # production
 /build
-
+/public/agradecimentos
 # misc
 .DS_Store
 *.pem
