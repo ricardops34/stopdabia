@@ -4,6 +4,7 @@ $env:NEXT_PUBLIC_BASE_URL = "https://adedonha.bjsoft.com.br"
 
 docker buildx build `
   --platform linux/amd64 `
+  --provenance=false `
   --build-arg NEXT_PUBLIC_SUPABASE_URL `
   --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY `
   --build-arg NEXT_PUBLIC_BASE_URL `
