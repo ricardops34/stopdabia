@@ -20,6 +20,7 @@
 # production
 /build
 /public/agradecimentos
+/public/imagens de referencia
 # misc
 .DS_Store
 *.pem
