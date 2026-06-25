@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -9,45 +9,47 @@ const AVATARS = Array.from({ length: 15 }, (_, i) => `/avatar/avatar_${String(i 
 const BG = 'radial-gradient(circle at 20% 20%, #FB7185 0%, #F472B6 50%, #EC4899 100%)'
 
 function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (a: string) => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const idx = AVATARS.indexOf(selected)
+  const prev = AVATARS[(idx - 1 + AVATARS.length) % AVATARS.length]
+  const next = AVATARS[(idx + 1) % AVATARS.length]
+
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <p className="text-white/70 text-sm font-bold">Escolha seu avatar</p>
-      <div className="flex items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: 0 }}>Escolha seu avatar</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+
         <button
-          onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })}
-          className="shrink-0 rounded-full flex items-center justify-center"
-          style={{ width: 32, height: 32, backgroundColor: 'rgba(0,0,0,0.25)', color: 'white', fontSize: 18 }}
+          onClick={() => onSelect(prev)}
+          style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.14)', color: '#FFD93D', fontWeight: 900, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
         >‹</button>
-        <div ref={scrollRef} className="flex items-center gap-3 overflow-x-auto flex-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', paddingTop: 8, paddingBottom: 8 }}>
-          {AVATARS.map((a) => {
-            const isSel = selected === a
-            const sz = isSel ? 96 : 56
-            return (
-              <button
-                key={a}
-                onClick={() => onSelect(a)}
-                className="rounded-full active:scale-90 shrink-0 snap-center"
-                style={{
-                  width: sz, height: sz, padding: isSel ? 4 : 3,
-                  border: isSel ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.2)',
-                  backgroundColor: isSel ? 'rgba(255,217,61,0.1)' : 'rgba(0,0,0,0.2)',
-                  boxShadow: isSel ? '0 0 12px rgba(255,217,61,0.4)' : 'none',
-                  transition: 'all 0.2s ease',
-                  flexShrink: 0,
-                }}
-              >
-                <Image src={a} alt="avatar" width={isSel ? 84 : 46} height={isSel ? 84 : 46} className="rounded-full object-cover" />
-              </button>
-            )
-          })}
-        </div>
+
         <button
-          onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}
-          className="shrink-0 rounded-full flex items-center justify-center"
-          style={{ width: 32, height: 32, backgroundColor: 'rgba(0,0,0,0.25)', color: 'white', fontSize: 18 }}
+          onClick={() => onSelect(prev)}
+          style={{ width: 60, height: 60, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.18)', backgroundColor: 'rgba(0,0,0,0.2)', padding: 3, opacity: 0.55, flexShrink: 0, cursor: 'pointer' }}
+        >
+          <Image src={prev} alt="avatar" width={50} height={50} style={{ borderRadius: '50%', objectFit: 'cover', width: '100%', height: '100%' }} />
+        </button>
+
+        <div style={{ width: 104, height: 104, borderRadius: '50%', border: '3px solid #FFD93D', backgroundColor: 'rgba(255,217,61,0.1)', padding: 5, boxShadow: '0 0 18px rgba(255,217,61,0.45)', flexShrink: 0 }}>
+          <Image src={selected} alt="avatar selecionado" width={90} height={90} style={{ borderRadius: '50%', objectFit: 'cover', width: '100%', height: '100%' }} />
+        </div>
+
+        <button
+          onClick={() => onSelect(next)}
+          style={{ width: 60, height: 60, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.18)', backgroundColor: 'rgba(0,0,0,0.2)', padding: 3, opacity: 0.55, flexShrink: 0, cursor: 'pointer' }}
+        >
+          <Image src={next} alt="avatar" width={50} height={50} style={{ borderRadius: '50%', objectFit: 'cover', width: '100%', height: '100%' }} />
+        </button>
+
+        <button
+          onClick={() => onSelect(next)}
+          style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.14)', color: '#FFD93D', fontWeight: 900, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
         >›</button>
+
       </div>
+      <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+        {idx + 1} / {AVATARS.length}
+      </p>
     </div>
   )
 }
