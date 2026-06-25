@@ -82,25 +82,31 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
 
         <div
           ref={scrollRef}
-          className="flex flex-1 gap-3 overflow-x-auto snap-x snap-mandatory"
-          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          className="flex flex-1 items-center gap-3 overflow-x-auto snap-x snap-mandatory"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingTop: 8, paddingBottom: 8 } as React.CSSProperties}
         >
-          {AVATARS.map((avatarSrc) => (
+          {AVATARS.map((avatarSrc) => {
+            const isSel = selected === avatarSrc
+            const sz = isSel ? 100 : 64
+            return (
             <button
               key={avatarSrc}
               onClick={() => onSelect(avatarSrc)}
-              className="snap-center shrink-0 rounded-full transition-transform active:scale-90"
+              className="snap-center shrink-0 rounded-full"
               style={{
-                width: 72,
-                height: 72,
-                border: selected === avatarSrc ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.18)',
-                backgroundColor: 'rgba(0,0,0,0.18)',
-                padding: 3,
+                width: sz,
+                height: sz,
+                border: isSel ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.18)',
+                backgroundColor: isSel ? 'rgba(255,217,61,0.1)' : 'rgba(0,0,0,0.18)',
+                padding: isSel ? 5 : 3,
+                boxShadow: isSel ? '0 0 14px rgba(255,217,61,0.4)' : 'none',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
               }}
             >
-              <Image src={avatarSrc} alt="avatar" width={62} height={62} className="rounded-full object-cover" />
+              <Image src={avatarSrc} alt="avatar" width={isSel ? 86 : 54} height={isSel ? 86 : 54} className="rounded-full object-cover" />
             </button>
-          ))}
+          )})}
         </div>
 
         <button
@@ -533,12 +539,20 @@ export default function HomePage() {
     )
   }
 
-  return (
-    <main style={{ position: 'relative', display: 'flex', minHeight: '100dvh', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
-      <BackgroundLetters />
-      <div style={{ pointerEvents: 'none', position: 'absolute', left: 16, top: 0, opacity: 0.9 }}>
+  const gameCenter = (
+    <>
+      <div style={{ pointerEvents: 'none', position: 'absolute', left: 16, top: 0, opacity: 0.9, zIndex: 5 }}>
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
       </div>
+
+      <button
+        onClick={() => router.push('/sobre')}
+        className="transition-transform active:scale-90"
+        style={{ position: 'absolute', left: 14, top: 14, zIndex: 20 }}
+        aria-label="Sobre o jogo"
+      >
+        <Image src="/icons/btn_coracao.png" alt="Sobre" width={44} height={44} style={{ objectFit: 'contain' }} />
+      </button>
 
       <div style={{ position: 'absolute', right: 16, top: 14, zIndex: 20 }}>
         <LoginBadge
@@ -553,7 +567,6 @@ export default function HomePage() {
       <section
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '68px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
       >
-        {/* Logo */}
         <Image
           src="/imagens/logo-home.png"
           alt="STOP ADEDONHA"
@@ -564,7 +577,6 @@ export default function HomePage() {
           priority
         />
 
-        {/* Mascote */}
         <Image
           src={`/cachorra/${cachorra}.png`}
           alt="Mascote STOP"
@@ -575,18 +587,7 @@ export default function HomePage() {
           priority
         />
 
-        {/* Tagline */}
-        <div
-          style={{
-            width: '100%',
-            borderRadius: 24,
-            padding: '10px 14px',
-            textAlign: 'center',
-            backgroundColor: 'rgba(8,19,36,0.93)',
-            border: '2px solid rgba(255,217,61,0.22)',
-            boxShadow: '0 10px 28px rgba(0,0,0,0.32)',
-          }}
-        >
+        <div style={{ width: '100%', borderRadius: 24, padding: '10px 14px', textAlign: 'center', backgroundColor: 'rgba(8,19,36,0.93)', border: '2px solid rgba(255,217,61,0.22)', boxShadow: '0 10px 28px rgba(0,0,0,0.32)' }}>
           <TaglineBanner />
         </div>
       </section>
@@ -604,9 +605,100 @@ export default function HomePage() {
             <button onClick={() => setView('friends')} className="transition-transform active:scale-90">
               <Image src="/icons/btn_entrar.png" alt="Entrar" width={64} height={64} style={{ objectFit: 'contain' }} />
             </button>
+            <button onClick={() => router.push('/ranking')} className="transition-transform active:scale-90">
+              <Image src="/icons/btn_ranking.png" alt="Ranking" width={64} height={64} style={{ objectFit: 'contain' }} />
+            </button>
           </>
         }
       />
-    </main>
+    </>
+  )
+
+  return (
+    <div style={{ position: 'relative', minHeight: '100dvh', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
+      <BackgroundLetters />
+
+      {/* Mobile: coluna única */}
+      <main className="relative lg:hidden flex flex-col min-h-dvh overflow-hidden">
+        {gameCenter}
+      </main>
+
+      {/* Desktop: 3 colunas */}
+      <div className="hidden lg:flex min-h-dvh">
+
+        {/* Painel esquerdo */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 32, position: 'relative', zIndex: 10 }}>
+          <Image
+            src="/imagens/logo-home.png"
+            alt="STOP ADEDONHA"
+            width={320}
+            height={230}
+            className="animate-pulse-logo"
+            style={{ objectFit: 'contain', width: '100%', maxWidth: 320 }}
+            priority
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 280 }}>
+            {[
+              { n: '1', t: 'Sorteie uma letra', d: 'Uma letra é revelada para todos os jogadores ao mesmo tempo.' },
+              { n: '2', t: 'Preencha as categorias', d: 'Pense rápido: nome, animal, cor, fruta e muito mais!' },
+              { n: '3', t: 'Grite STOP!', d: 'Quando terminar, pressione STOP e ganhe pontos únicos.' },
+            ].map(({ n, t, d }) => (
+              <div key={n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#FFD93D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: '#0a1628' }}>{n}</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#F8E7BF', margin: 0 }}>{t}</p>
+                  <p style={{ fontSize: 11, color: 'rgba(248,231,191,0.5)', margin: '2px 0 0', lineHeight: 1.4 }}>{d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Centro: jogo (largura fixa igual ao mobile) */}
+        <main
+          style={{ width: 440, flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderLeft: '1px solid rgba(255,255,255,0.07)', borderRight: '1px solid rgba(255,255,255,0.07)', backgroundColor: 'rgba(0,0,0,0.15)' }}
+        >
+          {gameCenter}
+        </main>
+
+        {/* Painel direito */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 24, position: 'relative', zIndex: 10 }}>
+          <Image
+            src="/cachorra/5.png"
+            alt="Mascote"
+            width={260}
+            height={260}
+            className="animate-float-dog"
+            style={{ objectFit: 'contain', maxWidth: 260, filter: 'drop-shadow(0 24px 52px rgba(0,0,0,0.5))' }}
+            priority
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 260 }}>
+            {[
+              { label: 'INDIVIDUAL', desc: 'Jogue solo e suba a trilha', color: '#FF6B6B', icon: '/icons/btn_individual.png', action: () => router.push('/solo') },
+              { label: 'CRIAR SALA', desc: 'Crie uma sala e convide amigos', color: '#FF9500', icon: '/icons/btn_criar_sala.png', action: () => setView('play') },
+              { label: 'ENTRAR',     desc: 'Entre numa sala existente', color: '#9B59B6', icon: '/icons/btn_entrar.png',    action: () => setView('friends') },
+              { label: 'RANKING',    desc: 'Veja os melhores jogadores', color: '#4ECDC4', icon: '/icons/btn_ranking.png',   action: () => router.push('/ranking') },
+            ].map(({ label, desc, color, icon, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', border: `1.5px solid ${color}44`, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.15s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${color}18`)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+              >
+                <Image src={icon} alt="" width={44} height={44} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 900, color, margin: 0, letterSpacing: 0.5 }}>{label}</p>
+                  <p style={{ fontSize: 11, color: 'rgba(248,231,191,0.4)', margin: '1px 0 0' }}>{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
   )
 }

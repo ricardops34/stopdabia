@@ -20,16 +20,54 @@ export function startMusic() {
   howl.play()
 }
 
-const EASTER_COUNT = 14
+// Uma única Promise reutilizada — garante que o fetch só acontece uma vez
+let easterPromise: Promise<void> | null = null
+let easterAudio: string[] = []
+let easterImages: string[] = []
+
+function ensureEasterLoaded(): Promise<void> {
+  if (!easterPromise) {
+    easterPromise = fetch('/api/easter')
+      .then((r) => r.json() as Promise<{ audio: string[]; images: string[] }>)
+      .then((data) => {
+        easterAudio = data.audio ?? []
+        easterImages = data.images ?? []
+      })
+      .catch(() => {}) // falha silenciosa — arrays ficam vazios
+  }
+  return easterPromise
+}
+
+// Pré-carrega assim que o módulo é importado no browser
+if (typeof window !== 'undefined') {
+  void ensureEasterLoaded()
+}
+
+function pickRandom<T>(arr: T[]): T | null {
+  if (!arr.length) return null
+  return arr[Math.floor(Math.random() * arr.length)]
+}
 
 export function playEasterEgg() {
   if (typeof window === 'undefined') return
-  const n = Math.floor(Math.random() * EASTER_COUNT) + 1
-  const padded = String(n).padStart(3, '0')
-  // HTMLAudioElement ignora o mute do Howler — toca sempre
-  const audio = new Audio(`/audio/easter/${padded}.mp3`)
-  audio.volume = 0.8
-  audio.play().catch(() => {})
+  // Se ainda carregando, espera e toca depois
+  ensureEasterLoaded().then(() => {
+    const src = pickRandom(easterAudio)
+    if (!src) return
+    const audio = new Audio(src)
+    audio.volume = 0.8
+    audio.play().catch(() => {})
+  })
+}
+
+export function pickEasterImage(): string | null {
+  // Síncrono — retorna null se ainda não carregou (raro após pré-load)
+  return pickRandom(easterImages)
+}
+
+export async function pickEasterImageAsync(): Promise<string | null> {
+  await ensureEasterLoaded()
+  return pickRandom(easterImages)
 }
 
 export function setMuted(muted: boolean) {

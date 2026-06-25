@@ -19,21 +19,28 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (a: 
           className="shrink-0 rounded-full flex items-center justify-center"
           style={{ width: 32, height: 32, backgroundColor: 'rgba(0,0,0,0.25)', color: 'white', fontSize: 18 }}
         >‹</button>
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto flex-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
-          {AVATARS.map((a) => (
-            <button
-              key={a}
-              onClick={() => onSelect(a)}
-              className="rounded-full active:scale-90 transition-transform shrink-0 snap-center"
-              style={{
-                width: 64, height: 64, padding: 3,
-                border: selected === a ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.2)',
-                backgroundColor: 'rgba(0,0,0,0.2)',
-              }}
-            >
-              <Image src={a} alt="avatar" width={54} height={54} className="rounded-full object-cover" />
-            </button>
-          ))}
+        <div ref={scrollRef} className="flex items-center gap-3 overflow-x-auto flex-1 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', paddingTop: 8, paddingBottom: 8 }}>
+          {AVATARS.map((a) => {
+            const isSel = selected === a
+            const sz = isSel ? 96 : 56
+            return (
+              <button
+                key={a}
+                onClick={() => onSelect(a)}
+                className="rounded-full active:scale-90 shrink-0 snap-center"
+                style={{
+                  width: sz, height: sz, padding: isSel ? 4 : 3,
+                  border: isSel ? '3px solid #FFD93D' : '3px solid rgba(255,255,255,0.2)',
+                  backgroundColor: isSel ? 'rgba(255,217,61,0.1)' : 'rgba(0,0,0,0.2)',
+                  boxShadow: isSel ? '0 0 12px rgba(255,217,61,0.4)' : 'none',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                }}
+              >
+                <Image src={a} alt="avatar" width={isSel ? 84 : 46} height={isSel ? 84 : 46} className="rounded-full object-cover" />
+              </button>
+            )
+          })}
         </div>
         <button
           onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}

@@ -32,8 +32,18 @@ export async function saveGameResult(mode: GameMode, record: GameRecord): Promis
   })
   await redis.expire(key, 60 * 60 * 24 * 30) // 30 dias
 
-  // Ranking acumulado: somamos pontos ao score existente do jogador
+  // Ranking acumulado
   await redis.zincrby(`ranking:${mode}`, record.score, record.nickname)
+
+  // Estatísticas de uso
+  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  await Promise.all([
+    redis.incr(`stats:games:${mode}`),
+    redis.incr(`stats:games:total`),
+    redis.incr(`stats:daily:${today}`),
+    redis.expire(`stats:daily:${today}`, 60 * 60 * 24 * 90), // 90 dias
+    redis.pfadd(`stats:players`, record.nickname), // HyperLogLog — unique players
+  ])
 }
 
 export async function getTopRanking(mode: GameMode, limit = 10): Promise<{ nickname: string; score: number }[]> {

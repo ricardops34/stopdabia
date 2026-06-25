@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { connectSocket } from '@/lib/socket/client'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
-import { playEasterEgg } from '@/lib/audio/manager'
+import { playEasterEgg, pickEasterImage, pickEasterImageAsync } from '@/lib/audio/manager'
+import { getGameConfig } from '@/lib/game/runtime-config'
+import StarRating from '@/components/StarRating'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { Room, Player, CategoryResult, Category, PlayerAnswer } from '@/lib/game/types'
 import { ALL_CATEGORIES } from '@/lib/game/config'
@@ -90,9 +92,14 @@ export default function RoomPage({ params }: PageProps) {
           if (!hasAnswer) setShowDemora(true)
         }, 10000)
         if (easterInterval.current) clearInterval(easterInterval.current)
-        easterInterval.current = setInterval(() => {
-          if (Math.random() < 0.25) playEasterEgg()
-        }, 20000)
+        void getGameConfig().then((cfg) => {
+          easterInterval.current = setInterval(() => {
+            if (Math.random() < cfg.easterChancePlaying) {
+              const img = pickEasterImage()
+              if (img) { setEasterEgg(img); playEasterEgg(); setTimeout(() => setEasterEgg(null), 3000) }
+            }
+          }, cfg.easterIntervalPlaying * 1000)
+        })
       } else {
         if (easterInterval.current) { clearInterval(easterInterval.current); easterInterval.current = null }
       }
@@ -100,12 +107,9 @@ export default function RoomPage({ params }: PageProps) {
         // Easter egg: 20% de chance — determinístico pela letra para todos verem igual
         setEasterEgg((prev) => {
           const letterCode = letter.charCodeAt(0)
-          if (letterCode % 5 === 0) {
-            const n = (letterCode % 13) + 1
-            const padded = String(n).padStart(2, '0')
-            playEasterEgg()
-            setTimeout(() => setEasterEgg(null), 3000)
-            return `/easter/easter_egg_${padded}.png`
+          if (letterCode % 2 === 0) {
+            const img = pickEasterImage()
+            if (img) { playEasterEgg(); setTimeout(() => setEasterEgg(null), 3000); return img }
           }
           return prev
         })
@@ -984,6 +988,10 @@ interface ReviewCategoryCardProps {
   currentCategoryId: string
 }
 
+function beatrizBonus(categoryId: string, answer: string): number {
+  return categoryId === 'nome' && answer.trim().toLowerCase() === 'beatriz' ? 5 : 0
+}
+
 function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, onNext, hintInfo, onChallenge, canChallenge, activeChallenge, myVote, challengedPlayerId, resolvedChallenges, currentCategoryId }: ReviewCategoryCardProps) {
   const sortedAnswers = [...cat.answers].sort((a, b) => {
     if (a.playerId === myId) return -1
@@ -1050,11 +1058,25 @@ function ReviewCategoryCard({ cat, idx, total, letter, myId, getAviso, onPrev, o
                     ? (resolvedValid ? '/aviso/acerto.png' : '/aviso/da_zero.png')
                     : getAviso(a, letter, idx + ai)
                   return (
-                    <div className="flex flex-col items-center gap-1">
+                    <div className="flex flex-col items-center gap-1" style={{ position: 'relative' }}>
                       <Image src={avisoSrc} alt="" width={90} height={90} style={{ objectFit: 'contain' }} />
-                      <span className="font-bold text-base" style={{ color: a.points > 0 ? '#FFD93D' : '#ffffff40' }}>
-                        {a.points > 0 ? `+${a.points}` : '0'}
-                      </span>
+                      {(() => {
+                        const bonus = beatrizBonus(cat.categoryId, a.answer)
+                        const pts = a.points + bonus
+                        return (
+                          <>
+                            <span className="font-bold text-base" style={{ color: pts > 0 ? '#FFD93D' : '#ffffff40' }}>
+                              {pts > 0 ? `+${pts}` : '0'}
+                            </span>
+                            {bonus > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Image src="/icons/btn_coracao.png" alt="" width={14} height={14} style={{ objectFit: 'contain' }} />
+                                <span style={{ fontSize: 10, fontWeight: 900, color: '#FF6B6B' }}>+{bonus}</span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   )
                 })()}
@@ -1144,10 +1166,25 @@ function ReviewView({
   const [idx, setIdx] = useState(0)
   const [step, setStep] = useState<'words' | 'summary'>('words')
   const [mounted, setMounted] = useState(false)
+  const [reviewEgg, setReviewEgg] = useState<string | null>(null)
   const isLastRound = currentRound >= maxRounds
 
   useEffect(() => { setIdx(0); setStep('words') }, [results])
   useEffect(() => { setMounted(true) }, [])
+
+  function triggerReviewEasterEgg(points: number) {
+    void getGameConfig().then((cfg) => {
+      const chance = points >= 15 ? cfg.easterChanceReviewPerfect : cfg.easterChanceReview
+      if (Math.random() < chance) {
+        void pickEasterImageAsync().then((img) => {
+          if (!img) return
+          setReviewEgg(img)
+          playEasterEgg()
+          setTimeout(() => setReviewEgg(null), 3000)
+        })
+      }
+    })
+  }
 
   if (phase === 'stopping' || results.length === 0) {
     return (
@@ -1165,8 +1202,22 @@ function ReviewView({
     const cat = results[idx]
     if (!cat) { setStep('summary'); return null }
     const isLast = idx === results.length - 1
-    const advance = () => isLast ? setStep('summary') : setIdx((i) => i + 1)
+
+    const myAnswer = cat.answers.find((a) => a.playerId === myId)
+    const advance = () => {
+      triggerReviewEasterEgg(myAnswer?.points ?? 0)
+      if (isLast) setStep('summary')
+      else setIdx((i) => i + 1)
+    }
     const goBack = idx > 0 ? () => setIdx((i) => i - 1) : null
+
+    if (reviewEgg) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-letter-enter" style={{ backgroundColor: '#1A1A2E' }}>
+          <Image src={reviewEgg} alt="" width={320} height={320} style={{ objectFit: 'contain' }} onError={() => setReviewEgg(null)} priority />
+        </div>
+      )
+    }
 
     return (
       <ReviewCategoryCard
@@ -1349,6 +1400,13 @@ function getPositionAviso(index: number, total: number): string | null {
 }
 
 function FinishedView({ players, myId, isHost, onHome, onRematch }: { players: Player[]; myId: string; isHost: boolean; onHome: () => void; onRematch: () => void }) {
+  const alreadyRated = typeof window !== 'undefined' && !!localStorage.getItem('game_rated')
+
+  async function handleRate(stars: number) {
+    localStorage.setItem('game_rated', '1')
+    await fetch('/api/rating', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stars }) })
+  }
+
   const winner = players[0]
 
   // Detecta empates no topo
@@ -1401,6 +1459,8 @@ function FinishedView({ players, myId, isHost, onHome, onRematch }: { players: P
           )
         })}
       </div>
+
+      <StarRating onRate={handleRate} rated={alreadyRated} />
 
       <BottomBar
         left={<BtnSecondary onClick={onHome} iconSrc="/icons/btn_inicio.png" label="INÍCIO" size={60} />}

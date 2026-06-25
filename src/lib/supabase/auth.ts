@@ -3,14 +3,14 @@
 import { createClient } from './client'
 
 export async function signInWithGoogle() {
-  console.log('[auth] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-  console.log('[auth] NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'OK (definida)' : 'INDEFINIDA')
-  console.log('[auth] redirectTo:', `${location.origin}/auth/callback`)
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? location.origin
+  const redirectTo = `${base}/auth/callback`
+  console.log('[auth] redirectTo:', redirectTo)
   try {
     const supabase = createClient()
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      options: { redirectTo },
     })
     console.log('[auth] signInWithOAuth data:', data)
     console.log('[auth] signInWithOAuth error:', error)

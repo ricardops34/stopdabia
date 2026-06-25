@@ -8,8 +8,10 @@ import type { Category } from '@/lib/game/types'
 import { computeCategoryScores } from '@/lib/game/scoring'
 import { avisoFromOutcome, avisoFromAnswer } from '@/lib/game/aviso'
 import type { AnswerOutcome } from '@/lib/game/types'
-import { playEasterEgg } from '@/lib/audio/manager'
+import { playEasterEgg, pickEasterImage, pickEasterImageAsync } from '@/lib/audio/manager'
+import { getGameConfig, DEFAULT_CONFIG } from '@/lib/game/runtime-config'
 import BottomBar, { BtnPrimary, BtnSecondary } from '@/components/BottomBar'
+import StarRating from '@/components/StarRating'
 
 type SoloPhase = 'trail' | 'config' | 'letter' | 'countdown' | 'playing' | 'interlude' | 'review' | 'result'
 type ReviewStep = 'words' | 'summary'
@@ -234,6 +236,10 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
   )
 }
 
+function beatrizBonus(categoryId: string, answer: string): number {
+  return categoryId === 'nome' && answer.trim().toLowerCase() === 'beatriz' ? 5 : 0
+}
+
 interface ReviewWordCardProps {
   r: AnswerResult
   idx: number
@@ -248,9 +254,17 @@ interface ReviewWordCardProps {
 function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext, hintInfo }: ReviewWordCardProps) {
   const isLast = idx === total - 1
   const avisoSrc = getAviso(r, idx)
+  const bonus = beatrizBonus(r.categoryId, r.answer)
+  const totalPoints = r.points + bonus
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E', position: 'relative' }}>
+      {bonus > 0 && (
+        <div className="animate-bounce" style={{ position: 'absolute', top: 16, right: 16, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Image src="/icons/btn_coracao.png" alt="❤️" width={52} height={52} style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(255,100,100,0.7))' }} />
+          <span style={{ fontSize: 12, fontWeight: 900, color: '#FF6B6B', letterSpacing: 0.5 }}>+{bonus} bônus</span>
+        </div>
+      )}
       {/* Cabeçalho */}
       <div className="shrink-0 px-4 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-3">
@@ -307,10 +321,10 @@ function ReviewWordCard({ r, idx, total, letter, getAviso, onPrev, onNext, hintI
         {/* Pontuação */}
         <div
           className="px-8 py-2 rounded-full"
-          style={{ backgroundColor: r.points > 0 ? 'rgba(255,217,61,0.15)' : 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: totalPoints > 0 ? 'rgba(255,217,61,0.15)' : 'rgba(255,255,255,0.05)' }}
         >
-          <span className="text-2xl font-black" style={{ color: r.points > 0 ? '#FFD93D' : '#ffffff40' }}>
-            {r.points > 0 ? `+${r.points} pontos` : 'Zero pontos'}
+          <span className="text-2xl font-black" style={{ color: totalPoints > 0 ? '#FFD93D' : '#ffffff40' }}>
+            {totalPoints > 0 ? `+${totalPoints} pontos` : 'Zero pontos'}
           </span>
         </div>
       </div>
@@ -359,6 +373,9 @@ export default function SoloPage() {
   const easterIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const letterRef = useRef('')
   const progressKeyRef = useRef('')
+  const gameConfigRef = useRef(DEFAULT_CONFIG)
+
+  useEffect(() => { void getGameConfig().then((c) => { gameConfigRef.current = c }) }, [])
 
   function clearAllTimers() {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -403,11 +420,9 @@ export default function SoloPage() {
 
   function startCountdown(l: string) {
     setPhase('countdown')
-    if (Math.random() < 0.2) {
-      const n = Math.floor(Math.random() * 10) + 1
-      setEasterEgg(`/easter/${n}.png`)
-      playEasterEgg()
-      setTimeout(() => setEasterEgg(null), 3000)
+    if (Math.random() < gameConfigRef.current.easterChanceCountdown) {
+      const img = pickEasterImage()
+      if (img) { setEasterEgg(img); playEasterEgg(); setTimeout(() => setEasterEgg(null), 3000) }
     }
     let count = 3
 
@@ -447,10 +462,14 @@ export default function SoloPage() {
       if (!hasAny) setShowDemora(true)
     }, 10000)
 
-    // easter egg de áudio aleatório durante a partida
+    // easter egg de áudio + imagem durante a partida
+    const cfg = gameConfigRef.current
     easterIntervalRef.current = setInterval(() => {
-      if (Math.random() < 0.25) playEasterEgg()
-    }, 20000)
+      if (Math.random() < cfg.easterChancePlaying) {
+        const img = pickEasterImage()
+        if (img) { setEasterEgg(img); playEasterEgg(); setTimeout(() => setEasterEgg(null), 3000) }
+      }
+    }, cfg.easterIntervalPlaying * 1000)
   }
 
   const endRound = useCallback(() => {
@@ -559,7 +578,7 @@ export default function SoloPage() {
   }
 
   function totalPoints() {
-    return results.reduce((s, r) => s + r.points, 0)
+    return results.reduce((s, r) => s + r.points + beatrizBonus(r.categoryId, r.answer), 0)
   }
 
   async function useHint(idx: number) {
@@ -708,6 +727,14 @@ export default function SoloPage() {
     const isFirst = catIdx === 0
     const isLast = catIdx === total - 1
 
+    if (easterEgg) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-letter-enter" style={{ backgroundColor: '#1A1A2E' }}>
+          <Image src={easterEgg} alt="" width={320} height={320} style={{ objectFit: 'contain' }} onError={() => setEasterEgg(null)} priority />
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', backgroundColor: '#1A1A2E' }}>
         {/* Header: letra + timer */}
@@ -822,6 +849,27 @@ export default function SoloPage() {
       if (!r) { setReviewStep('summary'); return null }
       const isLast = reviewIdx === results.length - 1
 
+      if (easterEgg) {
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center animate-letter-enter" style={{ backgroundColor: '#1A1A2E' }}>
+            <Image src={easterEgg} alt="" width={320} height={320} style={{ objectFit: 'contain' }} onError={() => setEasterEgg(null)} priority />
+          </div>
+        )
+      }
+
+      const triggerEasterEgg = (points: number) => {
+        const cfg = gameConfigRef.current
+        const chance = points >= 15 ? cfg.easterChanceReviewPerfect : cfg.easterChanceReview
+        if (Math.random() < chance) {
+          void pickEasterImageAsync().then((img) => {
+            if (!img) return
+            setEasterEgg(img)
+            playEasterEgg()
+            setTimeout(() => setEasterEgg(null), 3000)
+          })
+        }
+      }
+
       return (
         <ReviewWordCard
           r={r}
@@ -831,13 +879,17 @@ export default function SoloPage() {
           getAviso={getAviso}
           hintInfo={r.categoryId ? hintsMap[r.categoryId] : undefined}
           onPrev={reviewIdx > 0 ? () => setReviewIdx((i) => i - 1) : null}
-          onNext={() => isLast ? setReviewStep('summary') : setReviewIdx((i) => i + 1)}
+          onNext={() => {
+            triggerEasterEgg(r.points)
+            if (isLast) setReviewStep('summary')
+            else setReviewIdx((i) => i + 1)
+          }}
         />
       )
     }
 
     // Resumo final
-    const total = results.reduce((s, r) => s + r.points, 0)
+    const total = results.reduce((s, r) => s + r.points + beatrizBonus(r.categoryId, r.answer), 0)
     const maxPossible = results.length * 15
 
     return (
@@ -850,35 +902,38 @@ export default function SoloPage() {
         </div>
 
         <div className="flex-1 flex flex-col gap-2">
-          {results.map((r, ri) => (
+          {results.map((r, ri) => {
+            const bonus = beatrizBonus(r.categoryId, r.answer)
+            const pts = r.points + bonus
+            return (
             <div
               key={r.categoryId}
               className="rounded-2xl px-4 py-3 flex items-center gap-3"
-              style={{ backgroundColor: '#0F3460' }}
+              style={{ backgroundColor: '#0F3460', position: 'relative', overflow: 'hidden' }}
             >
-              {/* Aviso em destaque */}
               <Image src={getAviso(r, ri)} alt="" width={56} height={56} style={{ objectFit: 'contain', flexShrink: 0 }} />
 
-              {/* Categoria + resposta */}
               <div className="flex-1 flex flex-col min-w-0">
                 <span className="text-xs opacity-50 mb-0.5">{r.categoryLabel}</span>
-                <span
-                  className="text-base font-bold truncate"
-                  style={{ color: r.valid ? '#95E06C' : r.answer ? '#FF6B6B' : '#ffffff30' }}
-                >
+                <span className="text-base font-bold truncate" style={{ color: r.valid ? '#95E06C' : r.answer ? '#FF6B6B' : '#ffffff30' }}>
                   {r.answer || '—'}
                 </span>
               </div>
 
-              {/* Pontos */}
-              <span
-                className="text-base font-black shrink-0"
-                style={{ color: r.points > 0 ? '#FFD93D' : '#ffffff30', minWidth: 32, textAlign: 'right' }}
-              >
-                {r.points > 0 ? `+${r.points}` : '0'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                <span className="text-base font-black" style={{ color: pts > 0 ? '#FFD93D' : '#ffffff30' }}>
+                  {pts > 0 ? `+${pts}` : '0'}
+                </span>
+                {bonus > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Image src="/icons/btn_coracao.png" alt="" width={14} height={14} style={{ objectFit: 'contain' }} />
+                    <span style={{ fontSize: 10, fontWeight: 900, color: '#FF6B6B' }}>+{bonus}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: '#16213E' }}>
@@ -900,6 +955,12 @@ export default function SoloPage() {
     const maxPossible = selectedCats.length * 15
     const pct = maxPossible > 0 ? total / maxPossible : 0
     const resultPose = pct >= 0.7 ? 2 : pct >= 0.4 ? 3 : 4
+    const alreadyRated = typeof window !== 'undefined' && !!localStorage.getItem('game_rated')
+
+    async function handleRate(stars: number) {
+      localStorage.setItem('game_rated', '1')
+      await fetch('/api/rating', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stars }) })
+    }
 
     return (
       <div className="flex flex-col items-center min-h-screen px-4 py-8 gap-6 max-w-md mx-auto w-full">
@@ -914,6 +975,8 @@ export default function SoloPage() {
             style={{ width: `${Math.round((total / maxPossible) * 100)}%`, backgroundColor: '#95E06C' }}
           />
         </div>
+
+        <StarRating onRate={handleRate} rated={alreadyRated} />
 
         <BottomBar
           center={

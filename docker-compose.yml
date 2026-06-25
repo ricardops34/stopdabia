@@ -13,6 +13,7 @@ services:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - REDIS_URL=${REDIS_URL}
+      - ADMIN_KEY=${ADMIN_KEY}
       - NEXT_PUBLIC_BASE_URL=https://adedonha.bjsoft.com.br
     deploy:
       replicas: 1
