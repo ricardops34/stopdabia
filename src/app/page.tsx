@@ -553,7 +553,7 @@ export default function HomePage() {
         style={{ position: 'absolute', left: 14, top: 14, zIndex: 20 }}
         aria-label="Sobre o jogo"
       >
-        <Image src="/icons/btn_coracao.png" alt="Sobre" width={44} height={44} style={{ objectFit: 'contain' }} />
+        <Image src="/icons/btn_coracao.png" alt="Sobre" width={44} height={44} style={{ objectFit: 'contain' }} className="animate-pulse" />
       </button>
 
       <div style={{ position: 'absolute', right: 16, top: 14, zIndex: 20 }}>

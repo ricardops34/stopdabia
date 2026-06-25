@@ -36,6 +36,12 @@ export default function SobrePage() {
   const prev = () => setIdx((i) => (i - 1 + images.length) % images.length)
   const next = () => setIdx((i) => (i + 1) % images.length)
 
+  useEffect(() => {
+    if (images.length < 2) return
+    const timer = setInterval(() => setIdx((i) => (i + 1) % images.length), 4000)
+    return () => clearInterval(timer)
+  }, [images.length])
+
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
