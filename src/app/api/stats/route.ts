@@ -3,8 +3,10 @@ import { getRedis } from '@/lib/redis/client'
 
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
-  if (key !== process.env.ADMIN_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const envKey = process.env.ADMIN_KEY
+  console.log('[stats] ADMIN_KEY definida:', !!envKey, '| tamanho:', envKey?.length ?? 0, '| key recebida tamanho:', key?.length ?? 0, '| match:', key === envKey)
+  if (key !== envKey) {
+    return NextResponse.json({ error: 'Unauthorized', debug: { envKeyDefined: !!envKey, envKeyLength: envKey?.length ?? 0, receivedKeyLength: key?.length ?? 0 } }, { status: 401 })
   }
 
   const redis = getRedis()

@@ -539,8 +539,10 @@ export default function HomePage() {
     )
   }
 
-  const gameCenter = (
-    <>
+  return (
+    <main style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100dvh', overflow: 'hidden', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
+      <BackgroundLetters />
+
       <div style={{ pointerEvents: 'none', position: 'absolute', left: 16, top: 0, opacity: 0.9, zIndex: 5 }}>
         <Image src="/trail/fio_bg.png" alt="" width={52} height={180} />
       </div>
@@ -565,7 +567,7 @@ export default function HomePage() {
       </div>
 
       <section
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', position: 'relative', zIndex: 10, padding: '68px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', maxWidth: 480, margin: '0 auto', position: 'relative', zIndex: 10, padding: '68px 12px 96px', flex: 1, minHeight: '100dvh', boxSizing: 'border-box' }}
       >
         <Image
           src="/imagens/logo-home.png"
@@ -611,94 +613,6 @@ export default function HomePage() {
           </>
         }
       />
-    </>
-  )
-
-  return (
-    <div style={{ position: 'relative', minHeight: '100dvh', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
-      <BackgroundLetters />
-
-      {/* Mobile: coluna única */}
-      <main className="relative lg:hidden flex flex-col min-h-dvh overflow-hidden">
-        {gameCenter}
-      </main>
-
-      {/* Desktop: 3 colunas */}
-      <div className="hidden lg:flex min-h-dvh">
-
-        {/* Painel esquerdo */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 32, position: 'relative', zIndex: 10 }}>
-          <Image
-            src="/imagens/logo-home.png"
-            alt="STOP ADEDONHA"
-            width={320}
-            height={230}
-            className="animate-pulse-logo"
-            style={{ objectFit: 'contain', width: '100%', maxWidth: 320 }}
-            priority
-          />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 280 }}>
-            {[
-              { n: '1', t: 'Sorteie uma letra', d: 'Uma letra é revelada para todos os jogadores ao mesmo tempo.' },
-              { n: '2', t: 'Preencha as categorias', d: 'Pense rápido: nome, animal, cor, fruta e muito mais!' },
-              { n: '3', t: 'Grite STOP!', d: 'Quando terminar, pressione STOP e ganhe pontos únicos.' },
-            ].map(({ n, t, d }) => (
-              <div key={n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#FFD93D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: '#0a1628' }}>{n}</span>
-                </div>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: '#F8E7BF', margin: 0 }}>{t}</p>
-                  <p style={{ fontSize: 11, color: 'rgba(248,231,191,0.5)', margin: '2px 0 0', lineHeight: 1.4 }}>{d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Centro: jogo (largura fixa igual ao mobile) */}
-        <main
-          style={{ width: 440, flexShrink: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderLeft: '1px solid rgba(255,255,255,0.07)', borderRight: '1px solid rgba(255,255,255,0.07)', backgroundColor: 'rgba(0,0,0,0.15)' }}
-        >
-          {gameCenter}
-        </main>
-
-        {/* Painel direito */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 24, position: 'relative', zIndex: 10 }}>
-          <Image
-            src="/cachorra/5.png"
-            alt="Mascote"
-            width={260}
-            height={260}
-            className="animate-float-dog"
-            style={{ objectFit: 'contain', maxWidth: 260, filter: 'drop-shadow(0 24px 52px rgba(0,0,0,0.5))' }}
-            priority
-          />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 260 }}>
-            {[
-              { label: 'INDIVIDUAL', desc: 'Jogue solo e suba a trilha', color: '#FF6B6B', icon: '/icons/btn_individual.png', action: () => router.push('/solo') },
-              { label: 'CRIAR SALA', desc: 'Crie uma sala e convide amigos', color: '#FF9500', icon: '/icons/btn_criar_sala.png', action: () => setView('play') },
-              { label: 'ENTRAR',     desc: 'Entre numa sala existente', color: '#9B59B6', icon: '/icons/btn_entrar.png',    action: () => setView('friends') },
-              { label: 'RANKING',    desc: 'Veja os melhores jogadores', color: '#4ECDC4', icon: '/icons/btn_ranking.png',   action: () => router.push('/ranking') },
-            ].map(({ label, desc, color, icon, action }) => (
-              <button
-                key={label}
-                onClick={action}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', border: `1.5px solid ${color}44`, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.15s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${color}18`)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-              >
-                <Image src={icon} alt="" width={44} height={44} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 900, color, margin: 0, letterSpacing: 0.5 }}>{label}</p>
-                  <p style={{ fontSize: 11, color: 'rgba(248,231,191,0.4)', margin: '1px 0 0' }}>{desc}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-      </div>
-    </div>
+    </main>
   )
 }
