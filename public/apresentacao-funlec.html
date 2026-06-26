@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bia STOP — Apresentação FUNLEC OT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark:    #0a1628;
+      --bg-panel:   #0F3460;
+      --bg-detail:  #16213E;
+      --bg-game:    #1A1A2E;
+      --yellow:     #FFD93D;
+      --cream:      #F8E7BF;
+      --coral:      #FF6B6B;
+      --teal:       #4ECDC4;
+      --purple:     #9B59B6;
+      --orange:     #FF9500;
+      --green:      #95E06C;
+      --gold:       #D69B2B;
+    }
+
+    body {
+      font-family: 'Nunito', 'Arial Rounded MT Bold', sans-serif;
+      background: var(--bg-dark);
+      color: var(--cream);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ===== PAGE SYSTEM ===== */
+    .page {
+      width: 21cm;
+      min-height: 29.7cm;
+      margin: 0 auto 1cm;
+      padding: 1.6cm 1.4cm 1.4cm;
+      background: var(--bg-dark);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media print {
+      @page { size: A4; margin: 0; }
+      body { background: #0a1628; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { margin: 0; page-break-after: always; break-after: page; page-break-inside: avoid; }
+      .page:last-child { page-break-after: auto; break-after: auto; }
+    }
+
+    /* ===== DECORATIVE BACKGROUND BLOBS ===== */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    /* ===== UTILITY ===== */
+    .text-yellow  { color: var(--yellow); }
+    .text-coral   { color: var(--coral); }
+    .text-teal    { color: var(--teal); }
+    .text-purple  { color: var(--purple); }
+    .text-orange  { color: var(--orange); }
+    .text-green   { color: var(--green); }
+    .text-cream   { color: var(--cream); }
+    .text-center  { text-align: center; }
+    .bold         { font-weight: 800; }
+    .mt-sm        { margin-top: 0.5cm; }
+    .mt-md        { margin-top: 0.8cm; }
+    .mt-lg        { margin-top: 1.1cm; }
+
+    /* ===== PILL / BADGE ===== */
+    .pill {
+      display: inline-block;
+      padding: 3px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .pill-yellow  { background: var(--yellow);  color: #0a1628; }
+    .pill-coral   { background: var(--coral);   color: #fff; }
+    .pill-teal    { background: var(--teal);    color: #0a1628; }
+    .pill-purple  { background: var(--purple);  color: #fff; }
+    .pill-green   { background: var(--green);   color: #0a1628; }
+    .pill-orange  { background: var(--orange);  color: #fff; }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      padding: 0.7cm 0.8cm;
+      position: relative;
+    }
+    .card-border-yellow { border: 2px solid var(--yellow); }
+    .card-border-teal   { border: 2px solid var(--teal); }
+    .card-border-coral  { border: 2px solid var(--coral); }
+    .card-border-purple { border: 2px solid var(--purple); }
+    .card-border-green  { border: 2px solid var(--green); }
+
+    .highlight-box {
+      background: var(--bg-detail);
+      border-left: 4px solid var(--yellow);
+      border-radius: 0 12px 12px 0;
+      padding: 0.4cm 0.6cm;
+      margin: 0.4cm 0;
+      font-weight: 700;
+    }
+
+    /* ===== GRID ===== */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4cm; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35cm; }
+
+    /* ===== SECTION HEADER ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.35cm;
+      margin-bottom: 0.55cm;
+    }
+    .section-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    .section-line {
+      height: 3px;
+      border-radius: 2px;
+      margin-bottom: 0.55cm;
+    }
+
+    /* ===== STEP ===== */
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4cm;
+      margin-bottom: 0.45cm;
+    }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .step-body { flex: 1; padding-top: 4px; }
+    .step-title { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+    .step-desc  { font-size: 12.5px; color: rgba(248,231,191,0.8); }
+
+    /* ===== TECH CARD ===== */
+    .tech-card {
+      background: var(--bg-detail);
+      border-radius: 12px;
+      padding: 0.45cm 0.5cm;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .tech-emoji { font-size: 24px; }
+    .tech-name  { font-size: 13px; font-weight: 900; }
+    .tech-desc  { font-size: 11.5px; color: rgba(248,231,191,0.75); font-weight: 600; }
+    .tech-analogy { font-size: 11px; color: var(--yellow); font-weight: 700; font-style: italic; }
+
+    /* ===== AI CARD ===== */
+    .ai-feature {
+      background: var(--bg-detail);
+      border-radius: 12px;
+      padding: 0.4cm 0.5cm;
+      border-left: 3px solid var(--teal);
+      margin-bottom: 0.35cm;
+    }
+    .ai-feature-title { font-size: 13px; font-weight: 900; color: var(--teal); margin-bottom: 3px; }
+    .ai-feature-desc  { font-size: 12px; color: rgba(248,231,191,0.85); }
+
+    /* ===== SCORE TABLE ===== */
+    .score-table { width: 100%; border-collapse: collapse; }
+    .score-table th, .score-table td {
+      padding: 7px 12px;
+      text-align: left;
+      font-size: 12.5px;
+    }
+    .score-table th { font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .score-table tr:not(:last-child) td { border-bottom: 1px solid rgba(255,255,255,0.07); }
+
+    /* ===== QR PLACEHOLDER ===== */
+    .qr-box {
+      width: 5.5cm;
+      height: 5.5cm;
+      background: #fff;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+    .qr-inner {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .qr-cell { border-radius: 2px; }
+    .qr-dark { background: #0a1628; }
+    .qr-light { background: #fff; }
+
+    /* ===== CATEGORY CHIP ===== */
+    .cat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-detail);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      margin: 3px;
+    }
+
+    /* ===== FOOTER ===== */
+    .page-footer {
+      margin-top: auto;
+      padding-top: 0.4cm;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(248,231,191,0.35);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* ===== PERSON CARD ===== */
+    .person-card {
+      border-radius: 20px;
+      padding: 0.7cm 0.8cm;
+      flex: 1;
+    }
+    .person-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 0.35cm;
+    }
+    .person-name  { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .person-role  { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35cm; opacity: 0.75; }
+    .person-bio   { font-size: 12.5px; font-weight: 600; line-height: 1.6; opacity: 0.9; }
+
+    /* ===== STAT BOX ===== */
+    .stat-box {
+      background: var(--bg-detail);
+      border-radius: 12px;
+      padding: 0.45cm;
+      text-align: center;
+    }
+    .stat-num  { font-size: 28px; font-weight: 900; line-height: 1; }
+    .stat-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; opacity: 0.75; }
+
+    /* ===== CAPA specific ===== */
+    .capa-logo {
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: center;
+      letter-spacing: -1px;
+    }
+    .capa-dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--coral);
+      margin-left: 6px;
+      vertical-align: middle;
+      margin-bottom: 8px;
+    }
+    .yarn-ball {
+      font-size: 48px;
+      animation: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 1 — CAPA                             ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page" style="justify-content: space-between; align-items: center; text-align: center;">
+
+  <!-- Blobs decorativos -->
+  <div class="blob" style="width:18cm; height:18cm; background:var(--purple); top:-6cm; right:-5cm;"></div>
+  <div class="blob" style="width:12cm; height:12cm; background:var(--teal); bottom:-4cm; left:-3cm;"></div>
+  <div class="blob" style="width:8cm;  height:8cm;  background:var(--yellow); top:6cm; left:-2cm;"></div>
+
+  <!-- Topo: escola -->
+  <div>
+    <div class="pill pill-teal" style="margin-bottom: 0.3cm;">🏫 Escola FUNLEC OT — 8ª Série</div>
+  </div>
+
+  <!-- Centro: logo principal -->
+  <div>
+    <div style="margin-bottom: 0.5cm;">
+      <span style="font-size: 52px;">🧶</span>
+    </div>
+
+    <div class="capa-logo" style="color: var(--yellow); margin-bottom: 0.2cm;">
+      BIA<span style="color: var(--coral);">STOP</span>
+    </div>
+
+    <div style="width: 8cm; height: 4px; background: linear-gradient(90deg, var(--coral), var(--yellow), var(--teal)); border-radius: 2px; margin: 0 auto 0.5cm;"></div>
+
+    <p style="font-size: 22px; font-weight: 800; color: var(--cream); margin-bottom: 0.3cm;">
+      Um jogo feito com amor e tecnologia
+    </p>
+    <p style="font-size: 14px; font-weight: 700; color: rgba(248,231,191,0.65); margin-bottom: 0.8cm;">
+      O Adedonha digital que cabe no bolso 📱
+    </p>
+
+    <!-- Três chips de destaque -->
+    <div style="display: flex; gap: 0.4cm; justify-content: center; flex-wrap: wrap; margin-bottom: 0.8cm;">
+      <div class="pill pill-coral">🎮 Jogo Online</div>
+      <div class="pill pill-yellow">🤖 Inteligência Artificial</div>
+      <div class="pill pill-teal">👥 Multiplayer</div>
+    </div>
+
+    <!-- URL -->
+    <div style="background: var(--bg-panel); border: 2px solid var(--yellow); border-radius: 14px; padding: 0.4cm 0.9cm; display: inline-block; margin-bottom: 0.6cm;">
+      <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(248,231,191,0.6); margin-bottom: 4px;">Acesse agora:</p>
+      <p style="font-size: 17px; font-weight: 900; color: var(--yellow); letter-spacing: 0.05em;">adedonha.bjsoft.com.br</p>
+    </div>
+  </div>
+
+  <!-- Rodapé: crédito e data -->
+  <div>
+    <p style="font-size: 12px; font-weight: 700; color: rgba(248,231,191,0.5);">
+      Criado por Ricardo &amp; Bia Patay &nbsp;·&nbsp; Junho de 2026
+    </p>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 2 — O QUE É O BIA STOP?             ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page">
+  <div class="blob" style="width:14cm; height:14cm; background:var(--coral); top:-5cm; right:-5cm;"></div>
+  <div class="blob" style="width:10cm; height:10cm; background:var(--teal); bottom:-3cm; left:-2cm;"></div>
+
+  <div class="section-header">
+    <span class="section-icon">🎯</span>
+    <div>
+      <div class="pill pill-coral" style="margin-bottom: 4px;">O Jogo</div>
+      <h1 class="section-title text-yellow">O que é o Bia STOP?</h1>
+    </div>
+  </div>
+
+  <!-- Explicação do Stop -->
+  <div class="card card-border-yellow" style="margin-bottom: 0.5cm;">
+    <p style="font-size: 15px; font-weight: 800; color: var(--yellow); margin-bottom: 0.3cm;">📖 Você já jogou Adedonha?</p>
+    <p style="font-size: 13px; font-weight: 600; margin-bottom: 0.35cm;">
+      É aquele jogo clássico onde todo mundo recebe uma <strong style="color:var(--yellow);">letra sorteada</strong> e precisa preencher categorias com palavras que <strong style="color:var(--yellow);">comecem com essa letra</strong> — o mais rápido possível!
+    </p>
+    <div class="highlight-box">
+      <strong>Exemplo:</strong> Letra <span style="color:var(--yellow); font-size: 16px; font-weight: 900;">A</span> &nbsp;→&nbsp;
+      Nome: <em>Amanda</em> &nbsp;·&nbsp;
+      Animal: <em>Arara</em> &nbsp;·&nbsp;
+      Cor: <em>Azul</em> &nbsp;·&nbsp;
+      Fruta: <em>Abacaxi</em> &nbsp;·&nbsp;
+      Cidade: <em>Araxá</em>
+    </div>
+    <p style="font-size: 13px; font-weight: 700; color: var(--teal);">
+      Quem terminar primeiro grita <strong>"STOP!"</strong> — e todo mundo para de escrever! ✋
+    </p>
+  </div>
+
+  <!-- Categorias -->
+  <p style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.3cm; color: var(--cream);">Categorias disponíveis:</p>
+  <div style="margin-bottom: 0.5cm; line-height: 2;">
+    <span class="cat-chip" style="color: var(--coral);">📛 Nome</span>
+    <span class="cat-chip" style="color: var(--coral);">🐾 Animal</span>
+    <span class="cat-chip" style="color: var(--coral);">🎨 Cor</span>
+    <span class="cat-chip" style="color: var(--coral);">🍓 Fruta</span>
+    <span class="cat-chip" style="color: var(--coral);">📦 Objeto</span>
+    <span class="cat-chip" style="color: var(--coral);">💼 Profissão</span>
+    <span class="cat-chip" style="color: var(--teal);">🌆 Cidade</span>
+    <span class="cat-chip" style="color: var(--teal);">🌎 País</span>
+    <span class="cat-chip" style="color: var(--teal);">🍔 Comida</span>
+    <span class="cat-chip" style="color: var(--teal);">📚 Verbo</span>
+    <span class="cat-chip" style="color: var(--teal);">🦸 Personagem</span>
+    <span class="cat-chip" style="color: var(--teal);">⚽ Esporte</span>
+    <span class="cat-chip" style="color: var(--purple);">🎬 Filme</span>
+    <span class="cat-chip" style="color: var(--purple);">📺 Série</span>
+    <span class="cat-chip" style="color: var(--purple);">👟 Marca</span>
+    <span class="cat-chip" style="color: var(--purple);">🎵 Música</span>
+  </div>
+
+  <!-- Dois modos -->
+  <p style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.3cm; color: var(--cream);">Dois jeitos de jogar:</p>
+  <div class="grid-2">
+    <div class="card" style="background: var(--bg-detail); border: 2px solid var(--orange);">
+      <p style="font-size: 22px; margin-bottom: 6px;">🗺️</p>
+      <p style="font-size: 15px; font-weight: 900; color: var(--orange); margin-bottom: 5px;">Modo Solo</p>
+      <p style="font-size: 12px; font-weight: 600; color: rgba(248,231,191,0.8);">
+        Percorra uma trilha do <strong>A ao Z</strong>. Cada nó é uma letra diferente. Ganhe pontos e desbloqueie o próximo nó!
+      </p>
+    </div>
+    <div class="card" style="background: var(--bg-detail); border: 2px solid var(--purple);">
+      <p style="font-size: 22px; margin-bottom: 6px;">🎮</p>
+      <p style="font-size: 15px; font-weight: 900; color: var(--purple); margin-bottom: 5px;">Modo Multiplayer</p>
+      <p style="font-size: 12px; font-weight: 600; color: rgba(248,231,191,0.8);">
+        Crie uma sala com código e jogue com até <strong>10 amigos</strong> ao mesmo tempo — em tempo real!
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Bia STOP — FUNLEC OT, Junho 2026</span>
+    <span>Página 2</span>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 3 — COMO JOGAR                       ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page">
+  <div class="blob" style="width:12cm; height:12cm; background:var(--teal); top:-4cm; left:-3cm;"></div>
+  <div class="blob" style="width:10cm; height:10cm; background:var(--yellow); bottom:-3cm; right:-2cm;"></div>
+
+  <div class="section-header">
+    <span class="section-icon">📱</span>
+    <div>
+      <div class="pill pill-teal" style="margin-bottom: 4px;">Tutorial</div>
+      <h1 class="section-title text-teal">Como jogar</h1>
+    </div>
+  </div>
+
+  <div class="grid-2" style="gap: 0.5cm; flex: 1;">
+
+    <!-- Coluna Solo -->
+    <div>
+      <div style="background: var(--orange); border-radius: 12px 12px 0 0; padding: 8px 14px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">🗺️</span>
+        <span style="font-size: 14px; font-weight: 900; color: #fff;">Jogar Solo</span>
+      </div>
+      <div class="card" style="border-radius: 0 0 12px 12px; border: 2px solid var(--orange); border-top: none; padding: 0.5cm 0.5cm;">
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">1</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">Abra o site</p>
+            <p class="step-desc">Entre em <strong>adedonha.bjsoft.com.br</strong> pelo celular ou computador. Sem instalar nada!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">2</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">Clique em "Jogar Sozinho"</p>
+            <p class="step-desc">Você vai ver a trilha com todos os nós de letras. Começa pelo <strong>A</strong>!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">3</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">A letra é revelada</p>
+            <p class="step-desc">Uma contagem regressiva aparece: <strong>3... 2... 1... VAI!</strong> 🚀</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">4</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">Preencha as categorias</p>
+            <p class="step-desc">Você tem tempo limitado (30, 60 ou 90 segundos). Digite rápido!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">5</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">Bata em STOP! ✋</p>
+            <p class="step-desc">Quando terminar, aperte o botão vermelho. A IA corrige suas respostas!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--orange); color: #fff;">6</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--orange);">Veja seus pontos 🏆</p>
+            <p class="step-desc">Revise o resultado e avance para a próxima letra na trilha.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna Multiplayer -->
+    <div>
+      <div style="background: var(--purple); border-radius: 12px 12px 0 0; padding: 8px 14px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">🎮</span>
+        <span style="font-size: 14px; font-weight: 900; color: #fff;">Jogar com Amigos</span>
+      </div>
+      <div class="card" style="border-radius: 0 0 12px 12px; border: 2px solid var(--purple); border-top: none; padding: 0.5cm 0.5cm;">
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">1</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">Escolha um nickname</p>
+            <p class="step-desc">Seu nome de jogador — o que seus amigos vão ver. Pode ser criativo! 😄</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">2</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">Criar ou entrar na sala</p>
+            <p class="step-desc"><strong>Criar:</strong> receba um código de 6 letras e compartilhe com os amigos.<br/><strong>Entrar:</strong> digita o código de quem criou.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">3</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">Aguarda no lobby</p>
+            <p class="step-desc">Veja quem entrou na sala em tempo real. Até <strong>10 jogadores</strong>!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">4</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">O host inicia o jogo</p>
+            <p class="step-desc">Quem criou a sala configura as categorias e dá o start. Todos começam juntos!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">5</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">Compete com todos!</p>
+            <p class="step-desc">Quem der STOP primeiro para o relógio de todo mundo. Vale estratégia!</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num" style="background: var(--purple); color: #fff;">6</div>
+          <div class="step-body">
+            <p class="step-title" style="color: var(--purple);">Ranking ao vivo 🏅</p>
+            <p class="step-desc">Veja quem ganhou cada rodada e o placar geral. Jogar de novo?</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pontuação -->
+  <div class="card card-border-yellow" style="margin-top: 0.5cm; padding: 0.45cm 0.6cm;">
+    <p style="font-size: 13px; font-weight: 900; color: var(--yellow); margin-bottom: 0.3cm;">⭐ Como funcionam os pontos?</p>
+    <table class="score-table">
+      <thead>
+        <tr style="background: rgba(255,255,255,0.05);">
+          <th style="color: var(--cream);">Situação</th>
+          <th style="color: var(--yellow);">Pontos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight: 700;">✅ Resposta válida e única (só você acertou)</td>
+          <td style="color: var(--yellow); font-weight: 900; font-size: 16px;">15 pts</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">🤝 Válida mas igual à de outro jogador</td>
+          <td style="color: var(--teal); font-weight: 900; font-size: 16px;">10 pts</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">❌ Inválida, letra errada ou em branco</td>
+          <td style="color: var(--coral); font-weight: 900; font-size: 16px;">0 pts</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-footer">
+    <span>Bia STOP — FUNLEC OT, Junho 2026</span>
+    <span>Página 3</span>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 4 — A INTELIGÊNCIA ARTIFICIAL        ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page">
+  <div class="blob" style="width:15cm; height:15cm; background:var(--purple); top:-5cm; right:-4cm;"></div>
+  <div class="blob" style="width:8cm;  height:8cm;  background:var(--green); bottom:-2cm; left:-1cm;"></div>
+
+  <div class="section-header">
+    <span class="section-icon">🤖</span>
+    <div>
+      <div class="pill pill-purple" style="margin-bottom: 4px;">Tecnologia</div>
+      <h1 class="section-title text-purple">A Inteligência Artificial</h1>
+    </div>
+  </div>
+
+  <!-- O que é IA -->
+  <div class="card card-border-purple" style="margin-bottom: 0.5cm;">
+    <p style="font-size: 14px; font-weight: 800; color: var(--purple); margin-bottom: 0.3cm;">🧠 O que é Inteligência Artificial, afinal?</p>
+    <p style="font-size: 13px; font-weight: 600; margin-bottom: 0.3cm;">
+      Imagine um programa de computador que aprendeu a ler <strong style="color:var(--yellow);">bilhões de textos</strong> — livros, sites, dicionários, enciclopédias — e com isso consegue entender linguagem humana quase como uma pessoa real.
+    </p>
+    <div class="highlight-box" style="border-left-color: var(--purple);">
+      <strong style="color: var(--purple);">No Bia STOP</strong>, usamos uma IA chamada <strong>Llama 3</strong> (criada pela Meta, a empresa do Instagram/Facebook) rodando num serviço chamado <strong>Groq</strong>. É como ter um árbitro genial 24h por dia! ⚖️
+    </div>
+  </div>
+
+  <!-- 3 usos da IA -->
+  <p style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--cream); margin-bottom: 0.35cm;">A IA faz 3 coisas no jogo:</p>
+
+  <div class="ai-feature">
+    <p class="ai-feature-title">🏆 1. Validação de Respostas — "Isso vale ou não?"</p>
+    <p class="ai-feature-desc">
+      Quando você escreve "Arara" para Animal com letra A, a IA verifica: existe esse animal? Começa com A? Faz sentido? Ela devolve o veredito em menos de 1 segundo! Se a IA cair (problema de internet), o jogo tem um sistema de backup que verifica só se a letra bate. Sem travar a diversão!
+    </p>
+  </div>
+
+  <div class="ai-feature" style="border-left-color: var(--yellow);">
+    <p class="ai-feature-title" style="color: var(--yellow);">💡 2. Sistema de Dicas — "Tô travado, me ajuda!"</p>
+    <p class="ai-feature-desc">
+      Travou numa categoria? Aperte o botão de dica 🔦. A IA sugere uma palavra válida com a letra da rodada. Mas atenção: cada rodada tem <strong>uma dica só</strong>! Use com sabedoria. Depois de usar, o botão fica apagado — sem segunda chance!
+    </p>
+  </div>
+
+  <div class="ai-feature" style="border-left-color: var(--coral);">
+    <p class="ai-feature-title" style="color: var(--coral);">🛡️ 3. Moderação de Nicknames — "Ambiente seguro para todos"</p>
+    <p class="ai-feature-desc">
+      O jogo é feito para crianças de 7 a 17 anos. Por isso, quando você escolhe um nickname, a IA verifica se ele contém palavrões ou conteúdo inadequado. Se sim, recusa e pede outro. Assim todo mundo pode jogar sem problemas!
+    </p>
+  </div>
+
+  <!-- Analogia divertida -->
+  <div class="card" style="background: linear-gradient(135deg, var(--bg-panel), var(--bg-game)); border: 2px solid var(--green); margin-top: 0.4cm; padding: 0.5cm 0.6cm;">
+    <p style="font-size: 13px; font-weight: 900; color: var(--green); margin-bottom: 0.3cm;">🎓 Analogia: A IA é como um professor muito, muito rápido</p>
+    <div class="grid-3" style="gap: 0.35cm;">
+      <div style="background: var(--bg-detail); border-radius: 10px; padding: 0.3cm; text-align: center;">
+        <p style="font-size: 20px; margin-bottom: 4px;">👩‍🏫</p>
+        <p style="font-size: 11px; font-weight: 800; color: var(--green);">Professor real</p>
+        <p style="font-size: 10.5px; color: rgba(248,231,191,0.7);">Corrige uma prova em horas</p>
+      </div>
+      <div style="background: var(--bg-detail); border-radius: 10px; padding: 0.3cm; text-align: center;">
+        <p style="font-size: 20px; margin-bottom: 4px;">🤖</p>
+        <p style="font-size: 11px; font-weight: 800; color: var(--yellow);">Llama 3 (IA)</p>
+        <p style="font-size: 10.5px; color: rgba(248,231,191,0.7);">Corrige 10 respostas em &lt;1 segundo</p>
+      </div>
+      <div style="background: var(--bg-detail); border-radius: 10px; padding: 0.3cm; text-align: center;">
+        <p style="font-size: 20px; margin-bottom: 4px;">📚</p>
+        <p style="font-size: 11px; font-weight: 800; color: var(--teal);">Aprendeu com</p>
+        <p style="font-size: 10.5px; color: rgba(248,231,191,0.7);">Bilhões de textos em português</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Bia STOP — FUNLEC OT, Junho 2026</span>
+    <span>Página 4</span>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 5 — COMO FOI CONSTRUÍDO             ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page">
+  <div class="blob" style="width:12cm; height:12cm; background:var(--teal); top:-4cm; right:-3cm;"></div>
+  <div class="blob" style="width:10cm; height:10cm; background:var(--orange); bottom:-3cm; left:-2cm;"></div>
+
+  <div class="section-header">
+    <span class="section-icon">🔧</span>
+    <div>
+      <div class="pill pill-orange" style="margin-bottom: 4px;">Tecnologia</div>
+      <h1 class="section-title text-orange">Como foi construído</h1>
+    </div>
+  </div>
+
+  <p style="font-size: 13px; font-weight: 700; color: rgba(248,231,191,0.8); margin-bottom: 0.5cm;">
+    Um jogo digital moderno é feito de vários "blocos" de tecnologia que trabalham juntos. Pense como uma casa: cada tecnologia é uma parte diferente da construção! 🏠
+  </p>
+
+  <!-- Grid de tecnologias -->
+  <div class="grid-2" style="gap: 0.4cm; margin-bottom: 0.5cm;">
+
+    <div class="tech-card" style="border: 1.5px solid var(--teal);">
+      <span class="tech-emoji">⚛️</span>
+      <p class="tech-name" style="color: var(--teal);">Next.js + TypeScript</p>
+      <p class="tech-desc">O framework que monta as páginas do jogo</p>
+      <p class="tech-analogy">🏠 É a estrutura e as paredes da casa</p>
+    </div>
+
+    <div class="tech-card" style="border: 1.5px solid var(--yellow);">
+      <span class="tech-emoji">⚡</span>
+      <p class="tech-name" style="color: var(--yellow);">Socket.IO</p>
+      <p class="tech-desc">Comunicação em tempo real entre todos os jogadores</p>
+      <p class="tech-analogy">📞 É o WhatsApp da sala — mensagens instantâneas</p>
+    </div>
+
+    <div class="tech-card" style="border: 1.5px solid var(--purple);">
+      <span class="tech-emoji">🗄️</span>
+      <p class="tech-name" style="color: var(--purple);">Supabase</p>
+      <p class="tech-desc">Banco de dados que guarda perfis e progresso dos usuários</p>
+      <p class="tech-analogy">📁 É o armário que guarda suas coisas com segurança</p>
+    </div>
+
+    <div class="tech-card" style="border: 1.5px solid var(--coral);">
+      <span class="tech-emoji">🏆</span>
+      <p class="tech-name" style="color: var(--coral);">Redis</p>
+      <p class="tech-desc">Banco de dados ultra-rápido para o ranking global</p>
+      <p class="tech-analogy">🏟️ É o placar eletrônico do ginásio — atualiza na hora</p>
+    </div>
+
+    <div class="tech-card" style="border: 1.5px solid var(--green);">
+      <span class="tech-emoji">🤖</span>
+      <p class="tech-name" style="color: var(--green);">Groq + Llama 3</p>
+      <p class="tech-desc">IA que valida respostas e dá dicas em português</p>
+      <p class="tech-analogy">⚖️ É o árbitro digital super inteligente do jogo</p>
+    </div>
+
+    <div class="tech-card" style="border: 1.5px solid var(--orange);">
+      <span class="tech-emoji">🐳</span>
+      <p class="tech-name" style="color: var(--orange);">Docker + Nuvem</p>
+      <p class="tech-desc">O jogo roda num servidor na internet, disponível 24h</p>
+      <p class="tech-analogy">☁️ É o terreno onde a casa foi construída — na nuvem!</p>
+    </div>
+
+  </div>
+
+  <!-- Visual do jogo -->
+  <div class="card card-border-teal" style="margin-bottom: 0.5cm;">
+    <p style="font-size: 13px; font-weight: 900; color: var(--teal); margin-bottom: 0.3cm;">🧶 O visual crochê/amigurumi</p>
+    <p style="font-size: 12.5px; font-weight: 600;">
+      Todo o visual do Bia STOP tem tema de <strong style="color:var(--yellow);">crochê</strong> — aquelas criações feitas com fio de lã! Os personagens são <strong style="color:var(--yellow);">amigurumis</strong> (bonequinhos japoneses de lã). A mascote é a <strong style="color:var(--coral);">Bia</strong>, uma cachorrinha Boston Terrier feita de crochê, e uma <strong style="color:var(--teal);">menina de headphone</strong> que aparece para dar feedback durante o jogo.
+    </p>
+  </div>
+
+  <!-- Fluxo simplificado -->
+  <div class="card" style="background: var(--bg-detail);">
+    <p style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; color: var(--cream); margin-bottom: 0.35cm;">🔄 Como tudo se conecta (simplificado):</p>
+    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11.5px; font-weight: 800;">
+      <div style="background: var(--bg-panel); border-radius: 8px; padding: 5px 10px; color: var(--teal);">Seu celular</div>
+      <span style="color: rgba(248,231,191,0.4);">→</span>
+      <div style="background: var(--bg-panel); border-radius: 8px; padding: 5px 10px; color: var(--yellow);">Next.js<br/>(páginas)</div>
+      <span style="color: rgba(248,231,191,0.4);">→</span>
+      <div style="background: var(--bg-panel); border-radius: 8px; padding: 5px 10px; color: var(--purple);">Socket.IO<br/>(tempo real)</div>
+      <span style="color: rgba(248,231,191,0.4);">→</span>
+      <div style="background: var(--bg-panel); border-radius: 8px; padding: 5px 10px; color: var(--green);">Groq IA<br/>(validação)</div>
+      <span style="color: rgba(248,231,191,0.4);">→</span>
+      <div style="background: var(--bg-panel); border-radius: 8px; padding: 5px 10px; color: var(--coral);">Redis<br/>(ranking)</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Bia STOP — FUNLEC OT, Junho 2026</span>
+    <span>Página 5</span>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 6 — QUEM FEZ                         ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page">
+  <div class="blob" style="width:14cm; height:14cm; background:var(--yellow); top:-4cm; left:-4cm;"></div>
+  <div class="blob" style="width:10cm; height:10cm; background:var(--coral); bottom:-3cm; right:-2cm;"></div>
+
+  <div class="section-header">
+    <span class="section-icon">❤️</span>
+    <div>
+      <div class="pill pill-yellow" style="margin-bottom: 4px;">Os Criadores</div>
+      <h1 class="section-title text-yellow">Quem fez o Bia STOP?</h1>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 0.5cm; margin-bottom: 0.5cm; flex: 1;">
+
+    <!-- Ricardo -->
+    <div class="person-card card" style="background: linear-gradient(145deg, var(--bg-panel), var(--bg-detail)); border: 2px solid var(--teal);">
+      <div class="person-avatar" style="background: rgba(78,205,196,0.15); border: 2px solid var(--teal);">
+        👨‍💻
+      </div>
+      <div class="person-name" style="color: var(--teal);">Ricardo</div>
+      <div class="person-role" style="color: var(--teal);">Pai &amp; Desenvolvedor</div>
+      <p class="person-bio">
+        Ricardo é programador há muitos anos e usa tecnologia para criar coisas que as pessoas amam. Quando viu a Bia adorar jogar Adedonha em família, teve a ideia: <em>"E se a gente fizesse isso virar um jogo de verdade?"</em>
+      </p>
+      <div style="margin-top: 0.4cm;">
+        <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--teal); margin-bottom: 8px;">O que ele fez:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+          <span class="pill" style="background: rgba(78,205,196,0.15); color: var(--teal); border: 1px solid var(--teal);">Programou tudo</span>
+          <span class="pill" style="background: rgba(78,205,196,0.15); color: var(--teal); border: 1px solid var(--teal);">Conectou a IA</span>
+          <span class="pill" style="background: rgba(78,205,196,0.15); color: var(--teal); border: 1px solid var(--teal);">Subiu na nuvem</span>
+          <span class="pill" style="background: rgba(78,205,196,0.15); color: var(--teal); border: 1px solid var(--teal);">Criou o servidor</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bia -->
+    <div class="person-card card" style="background: linear-gradient(145deg, var(--bg-panel), var(--bg-detail)); border: 2px solid var(--yellow);">
+      <div class="person-avatar" style="background: rgba(255,217,61,0.15); border: 2px solid var(--yellow);">
+        🎀
+      </div>
+      <div class="person-name" style="color: var(--yellow);">Bia</div>
+      <div class="person-role" style="color: var(--yellow);">A Inspiração &amp; Co-criadora</div>
+      <p class="person-bio">
+        Bia é a filha do Ricardo, apaixonada por Adedonha desde pequenininha. O jogo foi criado <strong>para ela e por causa dela</strong> — e o nome não deixa dúvida! A mascote do jogo, a cachorrinha de crochê, também se chama Bia. 🐶
+      </p>
+      <div style="margin-top: 0.4cm;">
+        <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--yellow); margin-bottom: 8px;">O que ela fez:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+          <span class="pill" style="background: rgba(255,217,61,0.15); color: var(--yellow); border: 1px solid var(--yellow);">Testou tudo</span>
+          <span class="pill" style="background: rgba(255,217,61,0.15); color: var(--yellow); border: 1px solid var(--yellow);">Deu ideias</span>
+          <span class="pill" style="background: rgba(255,217,61,0.15); color: var(--yellow); border: 1px solid var(--yellow);">É a inspiração</span>
+          <span class="pill" style="background: rgba(255,217,61,0.15); color: var(--yellow); border: 1px solid var(--yellow);">🎯 Bateu STOP!</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mensagem afetiva -->
+  <div class="card" style="background: linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,217,61,0.1)); border: 2px solid var(--coral); text-align: center; padding: 0.6cm 0.8cm;">
+    <p style="font-size: 28px; margin-bottom: 0.3cm;">💛</p>
+    <p style="font-size: 14.5px; font-weight: 800; color: var(--cream); line-height: 1.7;">
+      "Todo projeto de tecnologia começa com uma ideia. <br/>
+      E toda ideia boa começa com alguém que você ama."
+    </p>
+    <p style="font-size: 12px; font-weight: 700; color: rgba(248,231,191,0.55); margin-top: 0.3cm;">
+      — Ricardo Patay, desenvolvedor e pai
+    </p>
+  </div>
+
+  <!-- Stats curiosos -->
+  <div class="grid-3" style="gap: 0.4cm; margin-top: 0.5cm;">
+    <div class="stat-box">
+      <p class="stat-num" style="color: var(--yellow);">22</p>
+      <p class="stat-label">Letras jogáveis<br/>(exceto K,W,X,Y)</p>
+    </div>
+    <div class="stat-box">
+      <p class="stat-num" style="color: var(--coral);">16</p>
+      <p class="stat-label">Categorias<br/>disponíveis</p>
+    </div>
+    <div class="stat-box">
+      <p class="stat-num" style="color: var(--teal);">10</p>
+      <p class="stat-label">Jogadores por<br/>sala multiplayer</p>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Bia STOP — FUNLEC OT, Junho 2026</span>
+    <span>Página 6</span>
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  PÁGINA 7 — EXPERIMENTE!                     ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="page" style="align-items: center; justify-content: space-between; text-align: center;">
+  <div class="blob" style="width:16cm; height:16cm; background:var(--teal);   top:-6cm;  right:-5cm;"></div>
+  <div class="blob" style="width:12cm; height:12cm; background:var(--purple); bottom:-4cm; left:-3cm;"></div>
+  <div class="blob" style="width:8cm;  height:8cm;  background:var(--yellow); top:5cm;   left:-2cm;"></div>
+
+  <!-- Topo -->
+  <div>
+    <div class="pill pill-green" style="margin-bottom: 0.4cm;">🎮 É gratuito e sem cadastro!</div>
+    <h1 style="font-size: 34px; font-weight: 900; color: var(--yellow); margin-bottom: 0.2cm;">
+      Experimente agora! 🚀
+    </h1>
+    <p style="font-size: 14px; font-weight: 700; color: rgba(248,231,191,0.75);">
+      Pega o celular, aponta a câmera para o QR Code e vamos jogar!
+    </p>
+  </div>
+
+  <!-- QR Code + URL -->
+  <div>
+    <!-- QR Code visual (geométrico, estilizado) -->
+    <div style="display: inline-block; background: var(--bg-panel); border-radius: 24px; padding: 0.6cm; border: 3px solid var(--yellow); margin-bottom: 0.5cm;">
+      <div style="width: 6cm; height: 6cm; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+        <!-- QR simulado com padrão visual -->
+        <div style="width: 5.2cm; height: 5.2cm; position: relative;">
+          <!-- Cantos QR -->
+          <!-- Canto superior esquerdo -->
+          <div style="position:absolute; top:0; left:0; width:1.3cm; height:1.3cm; border:3px solid #0a1628; border-radius:4px;"></div>
+          <div style="position:absolute; top:0.2cm; left:0.2cm; width:0.7cm; height:0.7cm; background:#0a1628; border-radius:2px;"></div>
+          <!-- Canto superior direito -->
+          <div style="position:absolute; top:0; right:0; width:1.3cm; height:1.3cm; border:3px solid #0a1628; border-radius:4px;"></div>
+          <div style="position:absolute; top:0.2cm; right:0.2cm; width:0.7cm; height:0.7cm; background:#0a1628; border-radius:2px;"></div>
+          <!-- Canto inferior esquerdo -->
+          <div style="position:absolute; bottom:0; left:0; width:1.3cm; height:1.3cm; border:3px solid #0a1628; border-radius:4px;"></div>
+          <div style="position:absolute; bottom:0.2cm; left:0.2cm; width:0.7cm; height:0.7cm; background:#0a1628; border-radius:2px;"></div>
+          <!-- Padrão central simulado -->
+          <div style="position:absolute; top:1.6cm; left:0.15cm; right:0.15cm; bottom:1.6cm; display:grid; grid-template-columns: repeat(8,1fr); grid-template-rows: repeat(4,1fr); gap:2px;">
+            <!-- Linha de células aleatórias representando módulos QR -->
+            <div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div>
+            <div></div><div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div></div>
+            <div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div></div><div style="background:#0a1628; border-radius:1px;"></div>
+            <div></div><div style="background:#0a1628; border-radius:1px;"></div><div></div><div></div><div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div style="background:#0a1628; border-radius:1px;"></div><div></div>
+          </div>
+          <!-- Logo no centro do QR -->
+          <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:6px; padding:4px 6px; border:2px solid #0a1628;">
+            <span style="font-size:16px; font-weight:900; color:#0a1628; font-family:'Nunito',sans-serif;">B</span><span style="font-size:16px; font-weight:900; color:#FF6B6B; font-family:'Nunito',sans-serif;">S</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- URL em destaque -->
+    <div style="background: var(--bg-panel); border: 3px solid var(--teal); border-radius: 18px; padding: 0.5cm 1.2cm; margin-bottom: 0.5cm; display: inline-block;">
+      <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--teal); margin-bottom: 6px;">Acesse pelo navegador:</p>
+      <p style="font-size: 22px; font-weight: 900; color: var(--yellow); letter-spacing: 0.05em;">adedonha.bjsoft.com.br</p>
+    </div>
+  </div>
+
+  <!-- Convite final -->
+  <div>
+    <div class="card card-border-green" style="margin-bottom: 0.5cm; padding: 0.5cm 0.7cm;">
+      <p style="font-size: 15px; font-weight: 900; color: var(--green); margin-bottom: 0.3cm;">🎯 Desafio para a turma!</p>
+      <p style="font-size: 13px; font-weight: 700; color: var(--cream);">
+        Que tal criar uma sala multiplayer agora e ver quem é o campeão do Stop na 8ª série?
+        <br/>Basta acessar o site, clicar em <strong style="color:var(--yellow);">"Criar Sala"</strong> e compartilhar o código de 6 letras com os colegas! 🏆
+      </p>
+    </div>
+
+    <!-- Rodapé final -->
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5cm;">
+      <span style="font-size: 11px; font-weight: 700; color: rgba(248,231,191,0.45);">Feito com</span>
+      <span style="font-size: 16px;">❤️</span>
+      <span style="font-size: 11px; font-weight: 700; color: rgba(248,231,191,0.45);">por Ricardo &amp; Bia &nbsp;·&nbsp; FUNLEC OT &nbsp;·&nbsp; Junho 2026</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

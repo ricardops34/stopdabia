@@ -10,7 +10,7 @@ function emailFromJwt(token: string): string | null {
   } catch { return null }
 }
 
-const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com']
+const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com', 'beatrizzangirolamisotomayor@gmail.com']
 
 function isAdmin(req: NextRequest): boolean {
   const token = (req.headers.get('authorization') ?? '').replace('Bearer ', '').trim()

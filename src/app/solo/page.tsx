@@ -144,35 +144,51 @@ function TrailScreen({ onSelectLetter, onBack, nickname, avatar, onNicknameChang
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="STOP ADEDONHA" width={110} className="animate-pulse-logo" style={{ height: 'auto', display: 'block', flexShrink: 0 }} />
 
-          {/* Nickname */}
+          {/* Perfil do jogador */}
           {editingNick ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flex: 1, maxWidth: 200 }}>
-              <input
-                autoFocus
-                value={nickname === 'Jogador' ? '' : nickname}
-                placeholder="Seu apelido..."
-                onChange={(e) => onNicknameChange(e.target.value.slice(0, 20))}
-                onBlur={() => { if (nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
-                onKeyDown={(e) => { if (e.key === 'Enter' && nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
-                style={{ width: '100%', backgroundColor: '#0F3460', border: '2px solid #FFD93D', borderRadius: 10, color: '#F8E7BF', fontWeight: 800, fontSize: 14, padding: '6px 10px', outline: 'none', textAlign: 'center' }}
-              />
-              {(nickname === 'Jogador' || !nickname) && (
-                <span style={{ fontSize: 9, color: '#FFD93D', fontWeight: 700 }}>Defina seu apelido para o ranking!</span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 220 }}>
+              {/* Avatar clicável mesmo no modo edição */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <button onClick={() => setPickingAvatar(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatar} alt="" width={42} height={42} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid #FFD93D', display: 'block' }} />
+                </button>
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', backgroundColor: '#FFD93D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, pointerEvents: 'none' }}>✏️</div>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <input
+                  autoFocus
+                  value={nickname === 'Jogador' ? '' : nickname}
+                  placeholder="Seu apelido..."
+                  onChange={(e) => onNicknameChange(e.target.value.slice(0, 20))}
+                  onBlur={() => { if (nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
+                  style={{ width: '100%', backgroundColor: '#0F3460', border: '2px solid #FFD93D', borderRadius: 10, color: '#F8E7BF', fontWeight: 800, fontSize: 14, padding: '6px 10px', outline: 'none', textAlign: 'center' }}
+                />
+                {(nickname === 'Jogador' || !nickname) && (
+                  <span style={{ fontSize: 9, color: '#FFD93D', fontWeight: 700, textAlign: 'center' }}>para aparecer no ranking!</span>
+                )}
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '5px 10px' }}>
-              {/* Avatar — clica para trocar */}
-              <button onClick={() => setPickingAvatar(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
+            <button
+              onClick={() => setPickingAvatar(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 24, padding: '5px 12px 5px 5px', cursor: 'pointer' }}
+            >
+              {/* Avatar maior com indicador de edição */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={avatar} alt="" width={26} height={26} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid #FFD93D' }} />
-              </button>
-              {/* Nickname — clica para editar */}
-              <button onClick={() => setEditingNick(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ color: '#F8E7BF', fontSize: 13, fontWeight: 800 }}>{nickname || 'Seu apelido'}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>✏️</span>
-              </button>
-            </div>
+                <img src={avatar} alt="" width={36} height={36} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid #FFD93D', display: 'block' }} />
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', backgroundColor: '#FFD93D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, pointerEvents: 'none' }}>✏️</div>
+              </div>
+              {/* Nickname — clique separado para editar */}
+              <span
+                onClick={(e) => { e.stopPropagation(); setEditingNick(true) }}
+                style={{ color: '#F8E7BF', fontSize: 13, fontWeight: 800 }}
+              >
+                {nickname || 'Seu apelido'}
+              </span>
+            </button>
           )}
         </div>
 

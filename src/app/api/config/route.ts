@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis/client'
 import { DEFAULT_CONFIG, type GameConfig } from '@/lib/game/runtime-config'
 
-const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com']
+const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com', 'beatrizzangirolamisotomayor@gmail.com']
 
 const KEYS: (keyof GameConfig)[] = [
   'easterChancePlaying',

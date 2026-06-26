@@ -14,3 +14,8 @@ vitest.config.ts
 eslint.config.mjs
 process_banners.js
 public/imagens de referencia
+public/icons/bau_*.png
+public/icons/btn_modelo.png
+public/icons/btn_question.png
+public/icons/btn_resultado.png
+public/icons/btn_stop_text.png

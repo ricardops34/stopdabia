@@ -90,6 +90,45 @@ public/
 > - `public/aviso/erro sistema.png` → `/aviso/erro%20sistema.png`
 > - `public/aviso/dica extra.png` → `/aviso/dica%20extra.png`
 
+## Regras de Dimensão de Imagens
+
+Este jogo é **mobile-first**. Não gerar assets em resolução “desktop/poster” sem necessidade.
+
+### Limites gerais
+
+- Preferir PNG/WebP entre **512px e 1024px** no maior lado
+- Evitar qualquer asset de runtime acima de **1400px** no maior lado
+- Evitar arquivos de runtime acima de **300KB** quando possível
+- Para imagens decorativas pequenas, alvo preferencial: **80KB–180KB**
+- Para screenshots e referências visuais, **não usar `public/`**; manter fora do runtime
+
+### Dimensões recomendadas por categoria
+
+| Categoria | Dimensão recomendada | Limite prático |
+|---|---|---|
+| `public/icons/btn_*.png` | `256x256` | máximo `384x384` |
+| `public/icons/letra_*.png` | `256x256` | máximo `320x320` |
+| `public/icons/bau_*.png` | `512x512` | máximo `768x768` |
+| `public/aviso/*.png` | `768x768` | máximo `1024x1024` |
+| `public/cachorra/*.png` | `768x768` | máximo `1024x1024` |
+| `public/avatar/avatar_*.png` | `256x256` | máximo `384x384` |
+| `public/contagem/*.png` | `768x768` | máximo `1024x1024` |
+| `public/easter/*.png` | `768x768` | máximo `1024x1024` |
+| `public/trail/node_*.png` | `256x256` | máximo `384x384` |
+| `public/trail/secao_*.png` | `1024x512` | máximo `1280x640` |
+| `public/trail/fio*.png` | largura real de uso + `2x` | evitar altura excessiva |
+| `public/imagens/logo-home.png` | `900x900` | máximo `1200x1200` |
+| `public/logo.png` | `512x512` | máximo `768x768` |
+| `public/ui/barra_fundo.png` | `800x80` ou `1024x96` | máximo `1280x128` |
+
+### Regras de exportação
+
+- Ícones e botões: fundo transparente, sem margens gigantes invisíveis
+- Não exportar PNG em `1536x1536`, `2048x2048` ou maior para assets comuns de interface
+- Se o asset aparece na tela com menos de `160px`, quase nunca precisa passar de `512px`
+- Se o asset aparece na tela com menos de `96px`, quase nunca precisa passar de `384px`
+- Antes de subir novos assets para `public/`, comprimir e validar o tamanho final
+
 ---
 
 ## Design System

@@ -9,7 +9,7 @@ function emailFromJwt(token: string): string | null {
   } catch { return null }
 }
 
-const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com']
+const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com', 'beatrizzangirolamisotomayor@gmail.com']
 
 function isAdmin(req: NextRequest): boolean {
   const token = (req.headers.get('authorization') ?? '').replace('Bearer ', '').trim()
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const sb = createServerClient()
+    const sb = await createServerClient()
     const start = Date.now()
 
     const [profilesRes, progressRes, matchesRes] = await Promise.all([

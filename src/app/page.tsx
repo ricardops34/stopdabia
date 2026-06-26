@@ -107,6 +107,8 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
   )
 }
 
+const OWNER_EMAILS = ['ricardo.patay.sotomayor@gmail.com', 'ricardopataysotomayor@gmail.com', 'beatrizzangirolamisotomayor@gmail.com']
+
 function LoginBadge({
   user,
   avatarPath,
@@ -123,6 +125,7 @@ function LoginBadge({
   onRanking: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const isAdmin = !!user?.email && OWNER_EMAILS.includes(user.email)
 
   if (!user) {
     return (
@@ -152,20 +155,32 @@ function LoginBadge({
           style={{ backgroundColor: '#0F3460', border: '2px solid rgba(214,155,43,0.35)' }}
         >
           <button
-            onClick={() => {
-              setOpen(false)
-              onRanking()
-            }}
+            onClick={() => { setOpen(false); onRanking() }}
             className="px-4 py-3 text-left text-sm font-bold"
             style={{ color: 'rgba(255,255,255,0.88)' }}
           >
             Ranking
           </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => { setOpen(false); window.location.href = '/admin' }}
+                className="border-t px-4 py-3 text-left text-sm font-bold"
+                style={{ color: '#FFD93D', borderColor: 'rgba(255,255,255,0.08)' }}
+              >
+                ⚙️ Admin
+              </button>
+              <button
+                onClick={() => { setOpen(false); window.open('/apresentacao-funlec.html', '_blank') }}
+                className="border-t px-4 py-3 text-left text-sm font-bold"
+                style={{ color: '#4ECDC4', borderColor: 'rgba(255,255,255,0.08)' }}
+              >
+                📄 Documentação
+              </button>
+            </>
+          )}
           <button
-            onClick={() => {
-              setOpen(false)
-              onLogout()
-            }}
+            onClick={() => { setOpen(false); onLogout() }}
             className="border-t px-4 py-3 text-left text-sm font-bold"
             style={{ color: '#FF6B6B', borderColor: 'rgba(255,255,255,0.08)' }}
           >
