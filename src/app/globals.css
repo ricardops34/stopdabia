@@ -114,3 +114,11 @@ body {
 .animate-float-dog {
   animation: float-dog 3s ease-in-out infinite;
 }
+
+/* Layout desktop: espaço para painéis laterais fixos de 240px */
+@media (min-width: 1024px) {
+  .lg-center-margins {
+    margin-left: 240px;
+    margin-right: 240px;
+  }
+}

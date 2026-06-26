@@ -76,17 +76,63 @@ function saveProgress(key: string, score: number, maxScore: number) {
   localStorage.setItem('stop_solo_progress', JSON.stringify(p))
 }
 
+const AVATARS = Array.from({ length: 15 }, (_, i) => `/avatar/avatar_${String(i + 1).padStart(2, '0')}.png`)
+
 interface TrailScreenProps {
   onSelectLetter: (letter: string, cats: string[], time: number, progressKey: string) => void
   onBack: () => void
+  nickname: string
+  avatar: string
+  onNicknameChange: (n: string) => void
+  onNicknameSave: (n: string) => void
+  onAvatarChange: (a: string) => void
 }
 
-function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
+function TrailScreen({ onSelectLetter, onBack, nickname, avatar, onNicknameChange, onNicknameSave, onAvatarChange }: TrailScreenProps) {
   const [progress, setProgress] = useState<SoloProgress>({})
   const [picking, setPicking] = useState<{ letter: string; cats: string[]; progressKey: string } | null>(null)
   const [time, setTime] = useState<30 | 60 | 90>(60)
+  const [editingNick, setEditingNick] = useState(nickname === 'Jogador' || !nickname)
+  const [pickingAvatar, setPickingAvatar] = useState(false)
 
-  useEffect(() => { setProgress(loadProgress()) }, [])
+  useEffect(() => {
+    const local = loadProgress()
+    setProgress(local)
+
+    // Se logado, sincroniza progresso do Supabase para o dispositivo atual
+    ;(async () => {
+      try {
+        const { createClient: createSb, supabaseConfigured: sbOk } = await import('@/lib/supabase/client')
+        if (!sbOk) return
+        const sb = createSb()
+        const { data: { user } } = await sb.auth.getUser()
+        if (!user) return
+        const { data } = await sb
+          .from('trail_progress')
+          .select('letter, score, max_score')
+          .eq('user_id', user.id)
+        if (!data?.length) return
+        const merged: SoloProgress = { ...local }
+        for (const row of data) {
+          const key = row.letter as string
+          const score = Number(row.score ?? 0)
+          const maxScore = Number(row.max_score ?? 0)
+          // Usa o maior score entre local e Supabase
+          if (!merged[key] || score > merged[key].score) {
+            merged[key] = { score, maxScore }
+          }
+        }
+        // Salva o merge no localStorage para offline
+        localStorage.setItem('stop_solo_progress', JSON.stringify(merged))
+        setProgress(merged)
+      } catch {}
+    })()
+  }, [])
+
+  // Abre editor automaticamente se nickname ainda é o padrão
+  useEffect(() => {
+    if (nickname === 'Jogador' || !nickname) setEditingNick(true)
+  }, [nickname])
 
   const currentKey = TRAIL_SECTIONS.flatMap(s => s.letters.map(l => `${s.id}_${l}`)).find(k => !progress[k]) ?? null
 
@@ -94,9 +140,40 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
     <main style={{ position: 'relative', height: '100dvh', overflow: 'hidden', backgroundColor: '#0a1628', backgroundImage: 'url(/ui/barra_fundo.png)', backgroundRepeat: 'repeat', backgroundSize: '200px' }}>
 
         {/* Header fixo no topo */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px 8px', zIndex: 10 }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px', zIndex: 10, gap: 8 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="STOP ADEDONHA" width={140} className="animate-pulse-logo" style={{ height: 'auto', display: 'block' }} />
+          <img src="/logo.png" alt="STOP ADEDONHA" width={110} className="animate-pulse-logo" style={{ height: 'auto', display: 'block', flexShrink: 0 }} />
+
+          {/* Nickname */}
+          {editingNick ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flex: 1, maxWidth: 200 }}>
+              <input
+                autoFocus
+                value={nickname === 'Jogador' ? '' : nickname}
+                placeholder="Seu apelido..."
+                onChange={(e) => onNicknameChange(e.target.value.slice(0, 20))}
+                onBlur={() => { if (nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && nickname && nickname !== 'Jogador') { setEditingNick(false); onNicknameSave(nickname) } }}
+                style={{ width: '100%', backgroundColor: '#0F3460', border: '2px solid #FFD93D', borderRadius: 10, color: '#F8E7BF', fontWeight: 800, fontSize: 14, padding: '6px 10px', outline: 'none', textAlign: 'center' }}
+              />
+              {(nickname === 'Jogador' || !nickname) && (
+                <span style={{ fontSize: 9, color: '#FFD93D', fontWeight: 700 }}>Defina seu apelido para o ranking!</span>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '5px 10px' }}>
+              {/* Avatar — clica para trocar */}
+              <button onClick={() => setPickingAvatar(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatar} alt="" width={26} height={26} style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid #FFD93D' }} />
+              </button>
+              {/* Nickname — clica para editar */}
+              <button onClick={() => setEditingNick(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ color: '#F8E7BF', fontSize: 13, fontWeight: 800 }}>{nickname || 'Seu apelido'}</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>✏️</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Trilha scrollável — top=130px (header), bottom=76px (barra) */}
@@ -113,9 +190,25 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
                   fill
                   style={{ objectFit: 'fill' }}
                 />
-                <div className="absolute inset-0 flex flex-col justify-center px-5">
-                  <p className="text-sm font-black tracking-widest uppercase" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{section.title}</p>
-                  <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.8)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>{section.subtitle}</p>
+                <div className="absolute inset-0 flex items-center justify-between px-5">
+                  <div className="flex flex-col justify-center">
+                    <p className="text-sm font-black tracking-widest uppercase" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{section.title}</p>
+                    <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.8)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>{section.subtitle}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // Prefere letras não jogadas; se todas jogadas, qualquer uma
+                      const unplayed = section.letters.filter((l) => !progress[`${section.id}_${l}`])
+                      const pool = unplayed.length > 0 ? unplayed : [...section.letters]
+                      const randomLetter = pool[Math.floor(Math.random() * pool.length)]
+                      const key = `${section.id}_${randomLetter}`
+                      onSelectLetter(randomLetter, [...section.categoryIds], time, key)
+                    }}
+                    style={{ flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Letra aleatória"
+                  >
+                    <Image src="/icons/btn_reiniciar.png" alt="Aleatório" width={26} height={26} style={{ objectFit: 'contain' }} />
+                  </button>
                 </div>
               </div>
 
@@ -232,6 +325,44 @@ function TrailScreen({ onSelectLetter, onBack }: TrailScreenProps) {
           <Image src="/icons/btn_inicio.png" alt="Início" width={64} height={64} style={{ objectFit: 'contain' }} />
         </button>
       } />
+
+      {/* Overlay seletor de avatar */}
+      {pickingAvatar && (() => {
+        const idx = AVATARS.indexOf(avatar)
+        const prev = AVATARS[(idx - 1 + AVATARS.length) % AVATARS.length]
+        const next = AVATARS[(idx + 1) % AVATARS.length]
+        return (
+          <div
+            onClick={() => setPickingAvatar(false)}
+            style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}
+          >
+            <p style={{ color: '#FFD93D', fontSize: 14, fontWeight: 900, letterSpacing: 1 }}>ESCOLHA SEU AVATAR</p>
+            <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button onClick={() => onAvatarChange(prev)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FFD93D', fontSize: 28, fontWeight: 900 }}>‹</button>
+              <button onClick={() => onAvatarChange(prev)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: 0.5 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={prev} alt="" width={60} height={60} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+              </button>
+              <div style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid #FFD93D', boxShadow: '0 0 20px rgba(255,217,61,0.5)', overflow: 'hidden' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatar} alt="" width={100} height={100} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <button onClick={() => onAvatarChange(next)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: 0.5 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={next} alt="" width={60} height={60} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+              </button>
+              <button onClick={() => onAvatarChange(next)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FFD93D', fontSize: 28, fontWeight: 900 }}>›</button>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 700 }}>{idx + 1} / {AVATARS.length}</p>
+            <button
+              onClick={() => setPickingAvatar(false)}
+              style={{ backgroundColor: '#FFD93D', color: '#0a1628', border: 'none', borderRadius: 12, padding: '10px 32px', fontSize: 14, fontWeight: 900, cursor: 'pointer' }}
+            >
+              CONFIRMAR
+            </button>
+          </div>
+        )
+      })()}
     </main>
   )
 }
@@ -352,6 +483,8 @@ export default function SoloPage() {
   const [selectedTime, setSelectedTime] = useState<30 | 60 | 90>(60)
   const [selectedCats, setSelectedCats] = useState<Category[]>(DEFAULT_CATEGORIES)
   const [letter, setLetter] = useState('')
+  const [nickname, setNickname] = useState('Jogador')
+  const [avatar, setAvatar] = useState('/avatar/avatar_01.png')
   const [countdown, setCountdown] = useState<number | null>(null)
   const [timer, setTimer] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -376,6 +509,14 @@ export default function SoloPage() {
   const gameConfigRef = useRef(DEFAULT_CONFIG)
 
   useEffect(() => { void getGameConfig().then((c) => { gameConfigRef.current = c }) }, [])
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('stop_player') ?? '{}') as { nickname?: string; avatar?: string }
+      if (saved.nickname) setNickname(saved.nickname)
+      if (saved.avatar) setAvatar(saved.avatar)
+    } catch {}
+  }, [])
 
   function clearAllTimers() {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -539,7 +680,7 @@ export default function SoloPage() {
       setReviewStep('words')
       setPhase('review')
 
-      // Persiste no Redis via API
+      // Persiste no Redis
       const total = allResults.reduce((s, r) => s + r.points, 0)
       const correct = allResults.filter((r) => r.valid).length
       fetch('/api/ranking/save', {
@@ -547,13 +688,34 @@ export default function SoloPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: 'solo',
-          nickname: 'Jogador', // será substituído quando tivermos perfis
+          nickname,
+          avatar,
           score: total,
           letter: l,
           categories: cats.length,
           answeredCorrect: correct,
         }),
-      }).catch(() => { /* Redis offline — silencioso */ })
+      }).catch(() => {})
+
+      // Persiste no Supabase se logado (usa progressKey como identificador único)
+      const pKey = progressKeyRef.current || letterRef.current
+      ;(async () => {
+        try {
+          const { createClient: createSb } = await import('@/lib/supabase/client')
+          const { supabaseConfigured: sbOk } = await import('@/lib/supabase/client')
+          if (!sbOk) return
+          const sb = createSb()
+          const { data: { user } } = await sb.auth.getUser()
+          if (!user) return
+          await sb.from('trail_progress').upsert({
+            user_id: user.id,
+            letter: pKey,
+            score: total,
+            max_score: maxScore,
+            played_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,letter' })
+        } catch {}
+      })()
     }
 
     validate()
@@ -616,6 +778,41 @@ export default function SoloPage() {
       <TrailScreen
         onSelectLetter={startGameWithLetter}
         onBack={() => router.push('/')}
+        nickname={nickname}
+        avatar={avatar}
+        onNicknameChange={(n) => {
+          setNickname(n)
+          try {
+            const saved = JSON.parse(localStorage.getItem('stop_player') ?? '{}') as Record<string, string>
+            localStorage.setItem('stop_player', JSON.stringify({ ...saved, nickname: n }))
+          } catch {}
+        }}
+        onNicknameSave={async (n) => {
+          try {
+            const { createClient: createSb } = await import('@/lib/supabase/client')
+            const sb = createSb()
+            const { data: { user } } = await sb.auth.getUser()
+            if (user) await sb.from('profiles').update({ nickname: n }).eq('id', user.id)
+          } catch {}
+        }}
+        onAvatarChange={(a) => {
+          setAvatar(a)
+          try {
+            const saved = JSON.parse(localStorage.getItem('stop_player') ?? '{}') as Record<string, string>
+            localStorage.setItem('stop_player', JSON.stringify({ ...saved, avatar: a }))
+          } catch {}
+          // Salva no Supabase se logado
+          ;(async () => {
+            try {
+              const { createClient: createSb } = await import('@/lib/supabase/client')
+              const sb = createSb()
+              const { data: { user } } = await sb.auth.getUser()
+              if (!user) return
+              const avatarId = AVATARS.indexOf(a) + 1
+              await sb.from('profiles').update({ avatar_id: avatarId }).eq('id', user.id)
+            } catch {}
+          })()
+        }}
       />
     )
   }

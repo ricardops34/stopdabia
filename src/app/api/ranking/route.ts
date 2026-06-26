@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const ranking = await getTopRanking(mode, limit)
+    console.log('[ranking] mode:', mode, '| entries:', ranking.length, '| data:', JSON.stringify(ranking.slice(0, 3)))
     return NextResponse.json({ mode, ranking })
   } catch (err) {
     console.error('[ranking] Redis unavailable:', err)

@@ -11,6 +11,7 @@ export type GameMode = 'multi' | 'solo'
 export interface GameRecord {
   id: string
   nickname: string
+  avatar?: string
   score: number
   letter: string
   categories: number
@@ -24,6 +25,7 @@ export async function saveGameResult(mode: GameMode, record: GameRecord): Promis
 
   await redis.hset(key, {
     nickname: record.nickname,
+    ...(record.avatar ? { avatar: record.avatar } : {}),
     score: record.score,
     letter: record.letter,
     categories: record.categories,
@@ -31,6 +33,11 @@ export async function saveGameResult(mode: GameMode, record: GameRecord): Promis
     createdAt: record.createdAt,
   })
   await redis.expire(key, 60 * 60 * 24 * 30) // 30 dias
+
+  // Salva avatar do jogador para exibir no ranking
+  if (record.avatar) {
+    await redis.hset(`player:${record.nickname}`, { avatar: record.avatar })
+  }
 
   // Ranking acumulado
   await redis.zincrby(`ranking:${mode}`, record.score, record.nickname)
@@ -46,12 +53,15 @@ export async function saveGameResult(mode: GameMode, record: GameRecord): Promis
   ])
 }
 
-export async function getTopRanking(mode: GameMode, limit = 10): Promise<{ nickname: string; score: number }[]> {
+export async function getTopRanking(mode: GameMode, limit = 10): Promise<{ nickname: string; score: number; avatar?: string }[]> {
   const redis = getRedis()
   const raw = await redis.zrevrange(`ranking:${mode}`, 0, limit - 1, 'WITHSCORES')
-  const result: { nickname: string; score: number }[] = []
+  const result: { nickname: string; score: number; avatar?: string }[] = []
   for (let i = 0; i < raw.length; i += 2) {
-    result.push({ nickname: raw[i], score: Number(raw[i + 1]) })
+    const nm = raw[i]
+    const score = Number(raw[i + 1])
+    const avatarData = await redis.hget(`player:${nm}`, 'avatar')
+    result.push({ nickname: nm, score, avatar: avatarData ?? undefined })
   }
   return result
 }

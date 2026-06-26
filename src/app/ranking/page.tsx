@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import BottomBar, { BtnSecondary } from '@/components/BottomBar'
+import { createClient, supabaseConfigured } from '@/lib/supabase/client'
 
 interface RankEntry {
   nickname: string
@@ -25,9 +26,37 @@ export default function RankingPage() {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/ranking?mode=${mode}&limit=20`)
-      .then((r) => r.json())
-      .then((data: { ranking: RankEntry[] }) => setEntries(data.ranking ?? []))
+
+    async function loadRanking() {
+      // Redis: inclui todos os jogadores (logados e não logados)
+      const res = await fetch(`/api/ranking?mode=${mode}&limit=20`)
+      const data = await res.json() as { ranking: RankEntry[] }
+      const redisEntries = data.ranking ?? []
+
+      // Enriquece com avatar do Supabase para usuários logados
+      if (supabaseConfigured && redisEntries.length > 0) {
+        try {
+          const sb = createClient()
+          const { data: profiles } = await sb
+            .from('profiles')
+            .select('nickname, avatar_id')
+            .in('nickname', redisEntries.map((e) => e.nickname))
+          if (profiles) {
+            const map = Object.fromEntries(profiles.map((p) => [p.nickname as string, p.avatar_id as number]))
+            return redisEntries.map((e) => ({
+              ...e,
+              avatar: map[e.nickname]
+                ? `/avatar/avatar_${String(map[e.nickname]).padStart(2, '0')}.png`
+                : e.avatar,
+            }))
+          }
+        } catch {}
+      }
+      return redisEntries
+    }
+
+    loadRanking()
+      .then(setEntries)
       .catch(() => setEntries([]))
       .finally(() => setLoading(false))
   }, [mode])
@@ -37,7 +66,11 @@ export default function RankingPage() {
       {/* Header */}
       <div style={{ padding: '24px 16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
         <Image src="/logo.png" alt="STOP" width={80} height={57} style={{ objectFit: 'contain' }} />
-        <h1 style={{ color: '#FFD93D', fontSize: 22, fontWeight: 900, letterSpacing: 3, margin: 0 }}>RANKING</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {['r','a','n','k','i','n','g'].map((l, i) => (
+            <Image key={i} src={`/icons/letra_${l}.png`} alt={l} width={28} height={28} style={{ objectFit: 'contain' }} />
+          ))}
+        </div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8, backgroundColor: '#0F3460', borderRadius: 12, padding: 4, width: '100%', maxWidth: 320 }}>

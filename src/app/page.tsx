@@ -110,12 +110,14 @@ function AvatarPicker({ selected, onSelect }: { selected: string; onSelect: (ava
 function LoginBadge({
   user,
   avatarPath,
+  nickname,
   onLogin,
   onLogout,
   onRanking,
 }: {
   user: User | null
   avatarPath: string
+  nickname: string
   onLogin: () => void
   onLogout: () => void
   onRanking: () => void
@@ -132,8 +134,6 @@ function LoginBadge({
       </button>
     )
   }
-
-  const nickname = user.user_metadata?.nickname ?? user.email?.split('@')[0] ?? 'Jogador'
 
   return (
     <div className="relative">
@@ -362,11 +362,27 @@ export default function HomePage() {
     if (!supabaseConfigured) return
 
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+
+    async function syncProfile(userId: string) {
+      const { data } = await supabase.from('profiles').select('nickname, avatar_id').eq('id', userId).single()
+      if (data?.nickname) {
+        const avatarPath = `/avatar/avatar_${String(data.avatar_id ?? 1).padStart(2, '0')}.png`
+        setNickname(data.nickname)
+        setAvatar(avatarPath)
+        localStorage.setItem('stop_player', JSON.stringify({ nickname: data.nickname, avatar: avatarPath }))
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      if (data.user) syncProfile(data.user.id)
+    })
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) syncProfile(session.user.id)
     })
 
     return () => subscription.unsubscribe()
@@ -380,24 +396,34 @@ export default function HomePage() {
     sessionStorage.setItem('stop_session', JSON.stringify({ code: nextCode, nickname: nextNickname }))
   }
 
-  function handlePlay() {
+  async function validateNickname(name: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/validate-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: name }),
+      })
+      const data = await res.json() as { ok: boolean; reason?: string }
+      if (!data.ok) { setError(data.reason ?? 'Apelido não permitido. Escolha outro.'); return false }
+    } catch { /* se IA falhar, continua */ }
+    return true
+  }
+
+  async function handlePlay() {
     setError('')
-    if (nickname.trim().length < 3) {
-      setError('Apelido precisa ter pelo menos 3 letras')
-      return
-    }
+    const name = nickname.trim()
+    if (name.length < 3) { setError('Apelido precisa ter pelo menos 3 letras'); return }
 
     setLoading(true)
+    if (!await validateNickname(name)) { setLoading(false); return }
+
     const socket = connectSocket()
     const doCreate = () => {
-      socket.emit('room:create', nickname.trim(), avatar, (res: { error?: string; code: string }) => {
+      socket.emit('room:create', name, avatar, (res: { error?: string; code: string }) => {
         setLoading(false)
-        if (res.error) {
-          setError(res.error)
-          return
-        }
-        savePlayer(nickname.trim(), avatar)
-        saveSession(res.code, nickname.trim())
+        if (res.error) { setError(res.error); return }
+        savePlayer(name, avatar)
+        saveSession(res.code, name)
         router.push(`/room/${res.code}`)
       })
     }
@@ -406,7 +432,7 @@ export default function HomePage() {
     else socket.once('connect', doCreate)
   }
 
-  function handleJoinFriends(roomCode?: string) {
+  async function handleJoinFriends(roomCode?: string) {
     const finalCode = (roomCode ?? code).trim().toUpperCase()
     setError('')
     if (nickname.trim().length < 3) {
@@ -420,6 +446,8 @@ export default function HomePage() {
     }
 
     setLoading(true)
+    if (!await validateNickname(nickname.trim())) { setLoading(false); return }
+
     const socket = connectSocket()
     const doJoin = () => {
       socket.emit('room:join', finalCode, nickname.trim(), avatar, (res: { ok?: boolean; error?: string }) => {
@@ -441,7 +469,6 @@ export default function HomePage() {
   function back() {
     setView('home')
     setError('')
-    setNickname('')
   }
 
   if (view === 'play') {
@@ -533,13 +560,14 @@ export default function HomePage() {
         style={{ position: 'absolute', left: 14, top: 14, zIndex: 20 }}
         aria-label="Sobre o jogo"
       >
-        <Image src="/icons/btn_coracao.png" alt="Sobre" width={44} height={44} style={{ objectFit: 'contain' }} className="animate-pulse" />
+        <Image src="/icons/letra_b.png" alt="Sobre" width={44} height={44} style={{ objectFit: 'contain' }} className="animate-pulse" />
       </button>
 
       <div style={{ position: 'absolute', right: 16, top: 14, zIndex: 20 }}>
         <LoginBadge
           user={user}
           avatarPath={avatar}
+          nickname={nickname || user?.email?.split('@')[0] || 'Jogador'}
           onLogin={signInWithGoogle}
           onLogout={signOut}
           onRanking={() => router.push('/ranking')}

@@ -72,8 +72,25 @@ export default function OnboardingPage() {
   }, [router])
 
   async function handleSave() {
-    if (nickname.trim().length < 3) { setError('Apelido precisa ter pelo menos 3 letras'); return }
+    const name = nickname.trim()
+    if (name.length < 3) { setError('Apelido precisa ter pelo menos 3 letras'); return }
     setLoading(true)
+
+    // Validação de conteúdo via IA
+    try {
+      const check = await fetch('/api/validate-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: name }),
+      })
+      const result = await check.json() as { ok: boolean; reason?: string }
+      if (!result.ok) {
+        setError(result.reason ?? 'Apelido não permitido. Escolha outro.')
+        setLoading(false)
+        return
+      }
+    } catch { /* se IA falhar, continua */ }
+
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.replace('/'); return }
@@ -82,13 +99,11 @@ export default function OnboardingPage() {
 
     const { error: err } = await supabase
       .from('profiles')
-      .upsert({ id: user.id, nickname: nickname.trim(), avatar_id: avatarId })
+      .upsert({ id: user.id, nickname: name, avatar_id: avatarId })
 
     if (err) { setError('Erro ao salvar. Tente novamente.'); setLoading(false); return }
 
-    // Salvar também no localStorage para o jogo usar sem buscar do banco
-    localStorage.setItem('stop_player', JSON.stringify({ nickname: nickname.trim(), avatar }))
-
+    localStorage.setItem('stop_player', JSON.stringify({ nickname: name, avatar }))
     router.replace('/')
   }
 
