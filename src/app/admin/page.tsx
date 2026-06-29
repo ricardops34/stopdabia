@@ -194,8 +194,8 @@ export default function AdminPage() {
       {/* Header */}
       <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ color: '#FFD93D', fontSize: 20, fontWeight: 900, letterSpacing: 2, margin: 0 }}>ADMIN — BIA STOP</h1>
-        <button onClick={() => { setStats(null); setToken(null) }} style={{ padding: '6px 16px', borderRadius: 8, backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          SAIR
+        <button onClick={() => { window.location.href = '/' }} style={{ padding: '6px 16px', borderRadius: 8, backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+          ← HOME
         </button>
       </div>
 
@@ -397,19 +397,26 @@ export default function AdminPage() {
         </div>
 
         {/* Banidos */}
-        {banned.length > 0 && (
-          <div style={CARD_STYLE}>
-            <span style={SECTION_LABEL}>Jogadores Banidos ({banned.length})</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        <div style={CARD_STYLE}>
+          <span style={SECTION_LABEL}>Jogadores Banidos ({banned.length})</span>
+          {banned.length === 0 ? (
+            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12, margin: 0 }}>Nenhum jogador banido</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {banned.map((nm) => (
-                <div key={nm} style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,107,107,0.12)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 6, padding: '3px 8px' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{nm}</span>
-                  <button onClick={() => unbanPlayer(nm)} style={{ background: 'none', border: 'none', color: '#95E06C', cursor: 'pointer', fontSize: 14, fontWeight: 900, padding: 0 }}>↩</button>
+                <div key={nm} style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 8, padding: '8px 12px' }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: '#FF6B6B' }}>{nm}</span>
+                  <button
+                    onClick={() => unbanPlayer(nm)}
+                    style={{ fontSize: 11, fontWeight: 900, padding: '4px 12px', borderRadius: 6, border: 'none', backgroundColor: '#95E06C', color: '#0a1628', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    DESBANIR
+                  </button>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Repopular ranking */}
         <div style={CARD_STYLE}>
